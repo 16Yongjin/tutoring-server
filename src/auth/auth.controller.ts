@@ -1,0 +1,29 @@
+import { Body, Controller, Get, Post, Request, UseGuards } from '@nestjs/common'
+import { Request as Req } from 'express'
+import { CreateUserDto } from '../users/dto'
+import { ValidationPipe } from '../shared/pipes'
+import { AuthService } from './auth.service'
+import { LocalAuthGuard } from './guards/local-auth.guard'
+import { JwtAuthGuard } from './guards/jwt-auth.guard'
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) {}
+
+  @UseGuards(LocalAuthGuard)
+  @Post('login')
+  async login(@Request() req: Req) {
+    return req.user
+  }
+
+  @Post('signup')
+  async signup(@Body(new ValidationPipe()) createUserDto: CreateUserDto) {
+    return this.authService.signup(createUserDto)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  me(@Request() req: Req) {
+    return req.user
+  }
+}
