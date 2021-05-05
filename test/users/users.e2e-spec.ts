@@ -10,7 +10,7 @@ import { AuthModule } from './../../src/auth/auth.module'
 import { Role } from './../../src/shared/enums'
 import { createDummyUser } from '../data/users.dummy'
 
-describe('AppController (e2e)', () => {
+xdescribe('AppController (e2e)', () => {
   let app: INestApplication
   let repository: Repository<User>
   let dummyData: User[]

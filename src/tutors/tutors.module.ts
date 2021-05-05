@@ -9,5 +9,6 @@ import { TutorsController } from './tutors.controller'
   imports: [TypeOrmModule.forFeature([Tutor, Schedule])],
   providers: [TutorsService],
   controllers: [TutorsController],
+  exports: [TypeOrmModule, TutorsService],
 })
 export class TutorsModule {}

@@ -20,10 +20,10 @@ export class Appointment {
   @ManyToOne(() => User, (user) => user.appointments)
   user: User
 
-  @Column('timestamp')
+  @Column('timestamptz')
   startTime: Date
 
-  @Column('timestamp')
+  @Column('timestamptz')
   endTime: Date
 
   @OneToOne(() => Feedback, (feedback) => feedback.appointment)

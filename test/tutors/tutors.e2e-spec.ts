@@ -8,15 +8,23 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { User } from '../../src/users/user.entity'
 import { Tutor } from '../../src/tutors/tutor.entity'
 import { TutorsModule } from '../../src/tutors/tutors.module'
-import { createDummyTutor, createDummyUser } from '../data/users.dummy'
+import {
+  createDummySchedules,
+  createDummyTutor,
+  createDummyUser,
+} from '../data/users.dummy'
+import { AuthModule } from '../../src/auth/auth.module'
+import { Schedule } from '../../src/tutors/schedule.entity'
+import { compareDate } from '../../src/utils/compareDate'
 
 describe('TutorModule Test (e2e)', () => {
   let app: INestApplication
   let tutorRepository: Repository<Tutor>
-  let userRepository: Repository<Tutor>
+  let userRepository: Repository<User>
+  let scheduleRepository: Repository<Tutor>
   let tutors: Tutor[]
   let users: User[]
-
+  let schedules: Schedule[]
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
@@ -32,6 +40,7 @@ describe('TutorModule Test (e2e)', () => {
           synchronize: true,
         }),
         TutorsModule,
+        AuthModule,
       ],
     }).compile()
 
@@ -40,12 +49,14 @@ describe('TutorModule Test (e2e)', () => {
 
     tutorRepository = moduleFixture.get('TutorRepository')
     userRepository = moduleFixture.get('UserRepository')
+    scheduleRepository = moduleFixture.get('ScheduleRepository')
   })
 
   beforeEach(async () => {
     await Promise.all([
       tutorRepository.createQueryBuilder().delete().from(Tutor).execute(),
       userRepository.createQueryBuilder().delete().from(User).execute(),
+      scheduleRepository.createQueryBuilder().delete().from(Schedule).execute(),
     ])
     tutors = createDummyTutor()
     users = createDummyUser()
@@ -54,49 +65,176 @@ describe('TutorModule Test (e2e)', () => {
       tutorRepository.save(tutors),
       userRepository.save(users),
     ])
+    schedules = createDummySchedules(tutors[0])
+
+    await scheduleRepository.save(schedules)
   })
 
-  describe('GET /tutors', () => {
-    it('로그인 X, 유저 가져오기 불가', async () => {
-      await request
+  describe('GET /tutors 튜터 리스트', () => {
+    it('모든 튜터 가져오기', async () => {
+      const { body } = await request
         .agent(app.getHttpServer())
         .get('/tutors')
         .set('Accept', 'application/json')
         .expect('Content-Type', /json/)
-        .expect(401)
+        .expect(200)
+
+      expect(body).toEqual(expect.any(Array))
+      if (body.length) {
+        expect(body[0].password).not.toBeDefined()
+      }
     })
   })
 
-  describe('POST /tutors', () => {
-    it('튜터 생성', async () => {
-      await request
+  describe('GET /tutor/:id', () => {
+    it('튜터 정보 확인', async () => {
+      const id = tutors[0].id
+
+      const { body } = await request
         .agent(app.getHttpServer())
-        .get('/tutors')
+        .get(`/tutors/${id}`)
         .set('Accept', 'application/json')
         .expect('Content-Type', /json/)
-        .expect(401)
+        .expect(200)
+      expect(body).toEqual(expect.objectContaining({ id }))
+      expect(body.password).not.toBeDefined()
     })
-  })
 
-  describe('POST /tutors/login', () => {
-    it('튜터 로그인', async () => {
-      await request
+    it('존재하지 않은 튜터 확인 시 에러', async () => {
+      const { body } = await request
         .agent(app.getHttpServer())
-        .get('/tutors')
+        .get(`/tutors/${-1}`)
         .set('Accept', 'application/json')
         .expect('Content-Type', /json/)
-        .expect(401)
+        .expect(404)
+
+      expect(body.message).toBeDefined()
     })
   })
 
-  describe('PUT /tutors', () => {
+  describe('PUT /tutors 튜터 업데이트', () => {
     it('튜터 업데이트', async () => {
       await request
         .agent(app.getHttpServer())
-        .get('/tutors')
+        .put('/tutors')
         .set('Accept', 'application/json')
         .expect('Content-Type', /json/)
-        .expect(401)
+        .expect(404)
+    })
+  })
+
+  describe('POST /tutor/schedule 튜터 스케쥴 추가', () => {
+    it('튜터는 다른 튜터의 스케쥴 추가 불가', async () => {
+      const loginData = {
+        username: tutors[0].username,
+        password: '123456',
+      }
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/login')
+        .set('Accept', 'application/json')
+        .send(loginData)
+        .expect(201)
+
+      const id = tutors[1].id
+      await request
+        .agent(app.getHttpServer())
+        .post(`/tutors/${id}/schedules`)
+        .set('Authorization', `Bearer ${token}`)
+        .set('Accept', 'application/json')
+        .send([])
+        .expect('Content-Type', /json/)
+        .expect(403)
+    })
+
+    it('스케쥴 추가', async () => {
+      const loginData = {
+        username: tutors[1].username,
+        password: '123456',
+      }
+      const data = { schedules: [new Date()] }
+      const {
+        body: { id, token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/login')
+        .set('Accept', 'application/json')
+        .send(loginData)
+
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .post(`/tutors/${id}/schedules`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(data)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      expect(
+        compareDate(body.schedules[0].startTime, data.schedules[0])
+      ).toBeTruthy()
+    })
+  })
+
+  describe('POST /tutor/schedule/remove 튜터 스케쥴 제거', () => {
+    it('튜터가 직접 본인 스케쥴 제거', async () => {
+      const loginData = {
+        username: tutors[0].username,
+        password: '123456',
+      }
+      const data = { schedules: [schedules[0].startTime] }
+      const {
+        body: { id, token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/login')
+        .set('Accept', 'application/json')
+        .send(loginData)
+
+      const { body: tutor } = await request
+        .agent(app.getHttpServer())
+        .post(`/tutors/${id}/schedules/remove`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(data)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const compare = tutor.schedules.every(
+        (s) => !compareDate(s.startTime, data.schedules[0])
+      )
+      expect(compare).toBeTruthy()
+    })
+
+    it('어드민이 다른 튜터의 스케쥴 제거', async () => {
+      const loginData = {
+        username: users[0].username,
+        password: '123456',
+      }
+      const data = { schedules: [schedules[0].startTime] }
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .set('Accept', 'application/json')
+        .send(loginData)
+
+      const { body: tutor } = await request
+        .agent(app.getHttpServer())
+        .post(`/tutors/${tutors[0].id}/schedules/remove`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(data)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const compare = tutor.schedules.every(
+        (s) => !compareDate(s.startTime, data.schedules[0])
+      )
+      expect(compare).toBeTruthy()
     })
   })
 
@@ -104,6 +242,7 @@ describe('TutorModule Test (e2e)', () => {
     await Promise.all([
       tutorRepository.createQueryBuilder().delete().from(Tutor).execute(),
       userRepository.createQueryBuilder().delete().from(User).execute(),
+      scheduleRepository.createQueryBuilder().delete().from(Schedule).execute(),
     ])
   })
 

@@ -72,7 +72,9 @@ export class Tutor extends BaseEntity {
   })
   country: Country
 
-  @OneToMany(() => Schedule, (schedule) => schedule.tutor)
+  @OneToMany(() => Schedule, (schedule) => schedule.tutor, {
+    cascade: true,
+  })
   schedules: Schedule[]
 
   @OneToMany(() => Appointment, (appontment) => appontment.tutor)

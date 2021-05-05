@@ -1,14 +1,21 @@
 import * as argon2 from 'argon2'
-import { BadRequestException, Injectable } from '@nestjs/common'
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { UsersService } from '../users/users.service'
-import { CreateUserDto } from '../users/dto'
+import { CreateUserDto, LoginUserDto } from '../users/dto'
 import { User } from '../users/user.entity'
+import { TutorsService } from '../tutors/tutors.service'
+import { CreateTutorDto } from '../tutors/dto/create-tutor.dto'
 
 @Injectable()
 export class AuthService {
   constructor(
     private usersService: UsersService,
+    private tutorsService: TutorsService,
     private jwtService: JwtService
   ) {}
 
@@ -21,6 +28,23 @@ export class AuthService {
     }
 
     return null
+  }
+
+  async validateTutor(username: string, pass: string): Promise<any> {
+    const tutor = await this.tutorsService.findOneByUsername(username)
+    if (!tutor) return null
+
+    if (await argon2.verify(tutor.password, pass)) {
+      return this.buildUserRO(tutor)
+    }
+
+    return null
+  }
+
+  async loginTutor({ username, password }: LoginUserDto) {
+    const tutor = await this.validateTutor(username, password)
+    if (!tutor) throw new UnauthorizedException()
+    return tutor
   }
 
   async signup(dto: CreateUserDto) {
@@ -45,6 +69,29 @@ export class AuthService {
     return this.buildUserRO(savedUser)
   }
 
+  async signupTutor(dto: CreateTutorDto) {
+    const tutor = await this.tutorsService.checkExistingTutor(
+      dto.username,
+      dto.email
+    )
+
+    if (tutor) {
+      const message = 'Bad signup request'
+      const errors = {
+        username:
+          tutor.username === dto.username
+            ? 'Username is already in use.'
+            : undefined,
+        email:
+          tutor.email === dto.email ? 'Email is already in use' : undefined,
+      }
+      throw new BadRequestException({ message, errors })
+    }
+
+    const savedTutor = await this.tutorsService.create(dto)
+    return this.buildUserRO(savedTutor)
+  }
+
   public generateJWT(user: User) {
     const today = new Date()
     const exp = new Date(today)
@@ -67,6 +114,7 @@ export class AuthService {
       token: this.generateJWT(user),
       image: user.image,
       language: user.language,
+      role: user.role,
     }
 
     return userRO

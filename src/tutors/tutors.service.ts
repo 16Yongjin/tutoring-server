@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { LoginUserDto } from '../users/dto'
 import { Repository } from 'typeorm'
@@ -6,11 +6,15 @@ import { CreateTutorDto } from './dto/create-tutor.dto'
 import { Tutor } from './tutor.entity'
 import * as argon2 from 'argon2'
 import { omit } from 'lodash'
+import * as dayjs from 'dayjs'
+import { AddSchedulesDto } from './dto/create-schedules.dto'
+import { Schedule } from './schedule.entity'
 
 @Injectable()
 export class TutorsService {
   constructor(
-    @InjectRepository(Tutor) private tutorRepository: Repository<Tutor>
+    @InjectRepository(Tutor) private tutorRepository: Repository<Tutor>,
+    @InjectRepository(Schedule) private scheduleRepository: Repository<Schedule>
   ) {}
 
   create(dto: CreateTutorDto) {
@@ -38,8 +42,24 @@ export class TutorsService {
   }
 
   async findAll(): Promise<Tutor[]> {
-    const users = await this.tutorRepository.find()
-    return users.map((user) => omit(user, 'password')) as Tutor[]
+    const tutors = await this.tutorRepository.find({ relations: ['schedules'] })
+    return tutors.map((user) => omit(user, 'password')) as Tutor[]
+  }
+
+  async findOneById(id: number | string): Promise<Tutor | null> {
+    const tutor = await this.tutorRepository.findOne({
+      where: { id },
+      relations: ['schedules'],
+    })
+    if (!tutor) {
+      const error = {
+        message: 'Tutor not found',
+        errors: { id: 'not existing' },
+      }
+      throw new NotFoundException(error)
+    }
+
+    return omit(tutor, 'password') as Tutor
   }
 
   findOneByUsername(username: string): Promise<Tutor | undefined> {
@@ -53,5 +73,41 @@ export class TutorsService {
     return this.tutorRepository.findOne({
       where: [{ username }, { email }],
     })
+  }
+
+  async addSchedules(id: number | string, { schedules }: AddSchedulesDto) {
+    const tutor = await this.findOneById(id)
+    const hasSchedule = tutor.schedules
+      .map((s) => dayjs(s.startTime).format('YYYY-MM-DDTHH:mm'))
+      .reduce((acc, v) => ((acc[v] = true), acc), {} as Record<string, boolean>)
+
+    const filteredSchedules = schedules
+      .filter((d) => !hasSchedule[dayjs(d).format('YYYY-MM-DDTHH:mm')])
+      .map((startTime) =>
+        Schedule.create({
+          tutor,
+          startTime,
+          endTime: dayjs(startTime).add(25, 'minutes'),
+        })
+      )
+
+    await this.scheduleRepository.save(filteredSchedules)
+
+    return this.findOneById(id)
+  }
+
+  async removeSchedules(id: number | string, { schedules }: AddSchedulesDto) {
+    const tutor = await this.findOneById(id)
+    const isTargetSchedule = schedules
+      .map((d) => dayjs(d).format('YYYY-MM-DDTHH:mm'))
+      .reduce((acc, v) => ((acc[v] = true), acc), {} as Record<string, boolean>)
+
+    const targetSchedules = tutor.schedules.filter(
+      (s) => isTargetSchedule[dayjs(s.startTime).format('YYYY-MM-DDTHH:mm')]
+    )
+
+    await this.scheduleRepository.remove(targetSchedules)
+
+    return this.findOneById(id)
   }
 }

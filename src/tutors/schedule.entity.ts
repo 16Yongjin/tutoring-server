@@ -1,17 +1,25 @@
-import { Entity, PrimaryGeneratedColumn, ManyToOne, Column } from 'typeorm'
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  Column,
+  BaseEntity,
+} from 'typeorm'
 import { Tutor } from './tutor.entity'
 
 @Entity()
-export class Schedule {
+export class Schedule extends BaseEntity {
   @PrimaryGeneratedColumn()
   id!: number
 
-  @ManyToOne(() => Tutor, (tutor) => tutor.schedules)
+  @ManyToOne(() => Tutor, (tutor) => tutor.schedules, {
+    onDelete: 'CASCADE',
+  })
   tutor: Tutor
 
-  @Column('timestamp')
+  @Column('timestamptz')
   startTime: Date
 
-  @Column('timestamp')
+  @Column('timestamptz')
   endTime: Date
 }
