@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { CreateUserDto, LoginUserDto } from './dto'
@@ -25,6 +25,7 @@ export class UsersService {
 
   async verifyUser({ username, password }: LoginUserDto): Promise<User> {
     const user = await this.userRepository.findOne({ username })
+    console.log('user', user)
     if (!user) return null
 
     if (await argon2.verify(user.password, password)) return user
@@ -35,6 +36,22 @@ export class UsersService {
   async findAll(): Promise<User[]> {
     const users = await this.userRepository.find()
     return users.map((user) => omit(user, 'password')) as User[]
+  }
+
+  async findOneById(id: number | string): Promise<User> {
+    const user = await this.userRepository.findOne({
+      where: { id },
+    })
+
+    if (!user) {
+      const error = {
+        message: 'User not found',
+        errors: { id: 'not existing' },
+      }
+      throw new NotFoundException(error)
+    }
+
+    return omit(user, 'password') as User
   }
 
   findOneByUsername(username: string): Promise<User | undefined> {

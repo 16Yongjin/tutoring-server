@@ -4,20 +4,25 @@ import {
   ManyToOne,
   Column,
   OneToOne,
+  BaseEntity,
 } from 'typeorm'
 import { User } from '../users/user.entity'
 import { Tutor } from '../tutors/tutor.entity'
-import { Feedback } from '../feedbacks/feedback.entity'
+import { Feedback } from './feedback.entity'
 
 @Entity()
-export class Appointment {
+export class Appointment extends BaseEntity {
   @PrimaryGeneratedColumn()
   id!: number
 
-  @ManyToOne(() => Tutor, (tutor) => tutor.appointments)
+  @ManyToOne(() => Tutor, (tutor) => tutor.appointments, {
+    onDelete: 'CASCADE',
+  })
   tutor: Tutor
 
-  @ManyToOne(() => User, (user) => user.appointments)
+  @ManyToOne(() => User, (user) => user.appointments, {
+    onDelete: 'CASCADE',
+  })
   user: User
 
   @Column('timestamptz')

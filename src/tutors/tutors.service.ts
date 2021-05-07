@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { LoginUserDto } from '../users/dto'
 import { Repository } from 'typeorm'
@@ -9,6 +13,7 @@ import { omit } from 'lodash'
 import * as dayjs from 'dayjs'
 import { AddSchedulesDto } from './dto/create-schedules.dto'
 import { Schedule } from './schedule.entity'
+import { compareDate } from '../utils/compareDate'
 
 @Injectable()
 export class TutorsService {
@@ -46,7 +51,7 @@ export class TutorsService {
     return tutors.map((user) => omit(user, 'password')) as Tutor[]
   }
 
-  async findOneById(id: number | string): Promise<Tutor | null> {
+  async findOneById(id: number | string): Promise<Tutor> {
     const tutor = await this.tutorRepository.findOne({
       where: { id },
       relations: ['schedules'],
@@ -109,5 +114,28 @@ export class TutorsService {
     await this.scheduleRepository.remove(targetSchedules)
 
     return this.findOneById(id)
+  }
+
+  async popSchedule(id: number | string, date: Date) {
+    const tutor = await this.findOneById(id)
+
+    const schedule = this.findSchedule(tutor, date)
+
+    if (!schedule) {
+      throw new BadRequestException({
+        message: "Tutor's schedule is not available.",
+        errors: { startTime: 'schedule is not available' },
+      })
+    }
+
+    await this.scheduleRepository.remove(schedule)
+
+    return this.findOneById(id)
+  }
+
+  findSchedule(tutor: Tutor, date: Date): Schedule {
+    return tutor.schedules?.find(({ startTime }) =>
+      compareDate(startTime, date)
+    )
   }
 }

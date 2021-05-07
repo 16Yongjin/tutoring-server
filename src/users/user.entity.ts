@@ -55,10 +55,12 @@ export class User extends BaseEntity {
   image: string
 
   @OneToMany(() => Appointment, (appointment) => appointment.user, {
-    onDelete: 'CASCADE',
+    cascade: true,
   })
   appointments: Appointment[]
 
-  @OneToMany(() => Review, (review) => review.user, { onDelete: 'CASCADE' })
+  @OneToMany(() => Review, (review) => review.user, {
+    cascade: true,
+  })
   reviews: Review[]
 }

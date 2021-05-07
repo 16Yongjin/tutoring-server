@@ -7,7 +7,6 @@ import { INestApplication } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
 import { User } from './../../src/users/user.entity'
 import { AuthModule } from './../../src/auth/auth.module'
-import { Role } from './../../src/shared/enums'
 import { createDummyUser } from '../data/users.dummy'
 
 xdescribe('AppController (e2e)', () => {

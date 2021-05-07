@@ -17,14 +17,15 @@ import { AuthModule } from '../../src/auth/auth.module'
 import { Schedule } from '../../src/tutors/schedule.entity'
 import { compareDate } from '../../src/utils/compareDate'
 
-describe('TutorModule Test (e2e)', () => {
+xdescribe('TutorModule Test (e2e)', () => {
   let app: INestApplication
   let tutorRepository: Repository<Tutor>
   let userRepository: Repository<User>
-  let scheduleRepository: Repository<Tutor>
+  let scheduleRepository: Repository<Schedule>
   let tutors: Tutor[]
   let users: User[]
   let schedules: Schedule[]
+
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [

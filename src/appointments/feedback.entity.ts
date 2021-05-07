@@ -1,5 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToOne } from 'typeorm'
-import { Appointment } from '../appointments/appointment.entity'
+import { Appointment } from './appointment.entity'
 
 @Entity()
 export class Feedback {

@@ -77,7 +77,9 @@ export class Tutor extends BaseEntity {
   })
   schedules: Schedule[]
 
-  @OneToMany(() => Appointment, (appontment) => appontment.tutor)
+  @OneToMany(() => Appointment, (appontment) => appontment.tutor, {
+    cascade: true,
+  })
   appointments: Appointment[]
 
   @OneToMany(() => Review, (reivew) => reivew.tutor)

@@ -8,12 +8,14 @@ import { AuthModule } from './../../src/auth/auth.module'
 import { User } from './../../src/users/user.entity'
 import { Role } from './../../src/shared/enums'
 import { Tutor } from './../../src/tutors/tutor.entity'
+import { Schedule } from '../../src/tutors/schedule.entity'
 import { createDummyTutor, createDummyUser } from '../data/users.dummy'
 
 xdescribe('AuthModule /auth (e2e)', () => {
   let app: INestApplication
   let tutorRepository: Repository<Tutor>
-  let userRepository: Repository<Tutor>
+  let userRepository: Repository<User>
+  let scheduleRepository: Repository<Schedule>
   let tutors: Tutor[]
   let users: User[]
 
@@ -39,12 +41,14 @@ xdescribe('AuthModule /auth (e2e)', () => {
 
     tutorRepository = moduleFixture.get('TutorRepository')
     userRepository = moduleFixture.get('UserRepository')
+    scheduleRepository = moduleFixture.get('ScheduleRepository')
   })
 
   beforeEach(async () => {
     await Promise.all([
       tutorRepository.createQueryBuilder().delete().from(Tutor).execute(),
       userRepository.createQueryBuilder().delete().from(User).execute(),
+      scheduleRepository.createQueryBuilder().delete().from(Schedule).execute(),
     ])
     tutors = createDummyTutor()
     users = createDummyUser()
@@ -361,6 +365,7 @@ xdescribe('AuthModule /auth (e2e)', () => {
     await Promise.all([
       tutorRepository.createQueryBuilder().delete().from(Tutor).execute(),
       userRepository.createQueryBuilder().delete().from(User).execute(),
+      scheduleRepository.createQueryBuilder().delete().from(Schedule).execute(),
     ])
   })
 

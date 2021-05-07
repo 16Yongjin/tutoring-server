@@ -1,4 +1,6 @@
 import * as dayjs from 'dayjs'
 
+export const formatDate = (d: Date) => dayjs(d).format('YYYY-MM-DDTHH:mm')
+
 export const compareDate = (d1: Date, d2: Date) =>
-  dayjs(d1).format('YYYY-MM-DDTHH:mm') === dayjs(d2).format('YYYY-MM-DDTHH:mm')
+  formatDate(d1) === formatDate(d2)
