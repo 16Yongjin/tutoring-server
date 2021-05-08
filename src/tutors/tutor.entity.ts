@@ -41,7 +41,7 @@ export class Tutor extends BaseEntity {
   @Column({ unique: true })
   email!: string
 
-  @Column()
+  @Column({ select: false })
   password!: string
 
   @BeforeInsert()
@@ -84,4 +84,9 @@ export class Tutor extends BaseEntity {
 
   @OneToMany(() => Review, (reivew) => reivew.tutor)
   reviews: Review[]
+
+  toJSON() {
+    delete this.password
+    return this
+  }
 }

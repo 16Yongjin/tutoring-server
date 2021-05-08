@@ -4,7 +4,6 @@ import { UsersController } from './users.controller'
 import { mockUserData } from './mocks/users.mock'
 import { UsersService } from './users.service'
 import { mockUserRepository } from './mocks/users.repository.mock'
-import { omit } from 'lodash'
 
 describe('UsersController', () => {
   let controller: UsersController
@@ -27,7 +26,7 @@ describe('UsersController', () => {
 
   it('should return all users', async () => {
     const users = await controller.findAll()
-    expect(users).toEqual(userData.map((u) => omit(u, 'password')))
+    expect(users).toEqual(userData)
   })
 
   it('should return a user', () => {

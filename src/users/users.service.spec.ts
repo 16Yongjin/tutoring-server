@@ -3,7 +3,6 @@ import { User } from './user.entity'
 import { mockUserData } from './mocks/users.mock'
 import { UsersService } from './users.service'
 import { mockUserRepository } from './mocks/users.repository.mock'
-import { omit } from 'lodash'
 
 describe('UsersService', () => {
   let service: UsersService
@@ -19,9 +18,7 @@ describe('UsersService', () => {
   })
 
   it('should find all users', async () => {
-    expect(await service.findAll()).toEqual(
-      userData.map((u) => omit(u, 'password'))
-    )
+    expect(await service.findAll()).toEqual(userData)
   })
 
   it('should find a user by username', async () => {

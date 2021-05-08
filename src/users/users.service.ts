@@ -1,10 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
-import { CreateUserDto, LoginUserDto } from './dto'
+import { FindOneOptions, Repository } from 'typeorm'
+import { CreateUserDto } from './dto'
 import { User } from './user.entity'
-import * as argon2 from 'argon2'
-import { omit } from 'lodash'
 
 @Injectable()
 export class UsersService {
@@ -23,24 +21,17 @@ export class UsersService {
     return this.userRepository.save(newUser)
   }
 
-  async verifyUser({ username, password }: LoginUserDto): Promise<User> {
-    const user = await this.userRepository.findOne({ username })
-    console.log('user', user)
-    if (!user) return null
-
-    if (await argon2.verify(user.password, password)) return user
-
-    return null
+  findAll(): Promise<User[]> {
+    return this.userRepository.find()
   }
 
-  async findAll(): Promise<User[]> {
-    const users = await this.userRepository.find()
-    return users.map((user) => omit(user, 'password')) as User[]
-  }
-
-  async findOneById(id: number | string): Promise<User> {
+  async findOneById(
+    id: number | string,
+    relations: string[] = []
+  ): Promise<User> {
     const user = await this.userRepository.findOne({
       where: { id },
+      relations,
     })
 
     if (!user) {
@@ -51,11 +42,18 @@ export class UsersService {
       throw new NotFoundException(error)
     }
 
-    return omit(user, 'password') as User
+    return user
   }
 
+  /**
+   * 비밀번호를 포함하는 유저 쿼리
+   */
   findOneByUsername(username: string): Promise<User | undefined> {
-    return this.userRepository.findOne({ username })
+    return this.userRepository
+      .createQueryBuilder('user')
+      .where('user.username = :username', { username })
+      .addSelect('user.password')
+      .getOne()
   }
 
   checkExistingUser(

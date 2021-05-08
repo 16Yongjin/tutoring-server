@@ -40,7 +40,7 @@ export class User extends BaseEntity {
   @Column({ unique: true })
   email!: string
 
-  @Column()
+  @Column({ select: false })
   password!: string
 
   @BeforeInsert()
@@ -63,4 +63,9 @@ export class User extends BaseEntity {
     cascade: true,
   })
   reviews: Review[]
+
+  toJSON() {
+    delete this.password
+    return this
+  }
 }

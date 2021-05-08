@@ -1,9 +1,10 @@
-import { Tutor } from '../../src/tutors/tutor.entity'
-import { Schedule } from '../../src/tutors/schedule.entity'
-import { Role } from '../../src/shared/enums'
-import { User } from '../../src/users/user.entity'
 import * as day from 'dayjs'
 import * as faker from 'faker'
+import { Role } from '../../src/shared/enums'
+import { User } from '../../src/users/user.entity'
+import { Tutor } from '../../src/tutors/tutor.entity'
+import { Schedule } from '../../src/tutors/schedule.entity'
+import { Appointment } from '../../src/appointments/appointment.entity'
 
 export const createDummyUser = () => [
   User.create({
@@ -56,5 +57,14 @@ export const createDummySchedules = (tutor: Tutor) => [
     tutor,
     startTime: day().add(3, 'hours').set('minutes', 30).set('seconds', 0),
     endTime: day().add(3, 'hours').set('minutes', 55).set('seconds', 0),
+  }),
+]
+
+export const createDummyAppointment = (user: User, tutor: Tutor) => [
+  Appointment.create({
+    user,
+    tutor,
+    startTime: day().add(4, 'hours').set('minutes', 30).set('seconds', 0),
+    endTime: day().add(4, 'hours').set('minutes', 55).set('seconds', 0),
   }),
 ]

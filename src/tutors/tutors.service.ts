@@ -9,7 +9,6 @@ import { Repository } from 'typeorm'
 import { CreateTutorDto } from './dto/create-tutor.dto'
 import { Tutor } from './tutor.entity'
 import * as argon2 from 'argon2'
-import { omit } from 'lodash'
 import * as dayjs from 'dayjs'
 import { AddSchedulesDto } from './dto/create-schedules.dto'
 import { Schedule } from './schedule.entity'
@@ -48,7 +47,7 @@ export class TutorsService {
 
   async findAll(): Promise<Tutor[]> {
     const tutors = await this.tutorRepository.find({ relations: ['schedules'] })
-    return tutors.map((user) => omit(user, 'password')) as Tutor[]
+    return tutors
   }
 
   async findOneById(id: number | string): Promise<Tutor> {
@@ -64,11 +63,15 @@ export class TutorsService {
       throw new NotFoundException(error)
     }
 
-    return omit(tutor, 'password') as Tutor
+    return tutor
   }
 
   findOneByUsername(username: string): Promise<Tutor | undefined> {
-    return this.tutorRepository.findOne({ username })
+    return this.tutorRepository
+      .createQueryBuilder('tutor')
+      .where('tutor.username = :username', { username })
+      .addSelect('tutor.password')
+      .getOne()
   }
 
   checkExistingTutor(
@@ -80,6 +83,21 @@ export class TutorsService {
     })
   }
 
+  async addSchedule(id: number | string, startTime: Date) {
+    const tutor = await this.findOneById(id)
+
+    const existingSchedule = this.findSchedule(tutor, startTime)
+
+    if (existingSchedule) return existingSchedule
+
+    const newSchedule = Schedule.create({
+      tutor,
+      startTime: dayjs(startTime).set('second', 0),
+      endTime: dayjs(startTime).set('second', 0).add(25, 'minutes'),
+    })
+
+    return this.scheduleRepository.save(newSchedule)
+  }
   async addSchedules(id: number | string, { schedules }: AddSchedulesDto) {
     const tutor = await this.findOneById(id)
     const hasSchedule = tutor.schedules

@@ -5,6 +5,7 @@ import {
   Column,
   OneToOne,
   BaseEntity,
+  JoinColumn,
 } from 'typeorm'
 import { User } from '../users/user.entity'
 import { Tutor } from '../tutors/tutor.entity'
@@ -31,6 +32,10 @@ export class Appointment extends BaseEntity {
   @Column('timestamptz')
   endTime: Date
 
+  @Column({ type: 'integer', nullable: true })
+  feedbackId: number
+
   @OneToOne(() => Feedback, (feedback) => feedback.appointment)
+  @JoinColumn()
   feedback?: Feedback
 }
