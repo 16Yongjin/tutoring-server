@@ -12,6 +12,7 @@ import {
   createDummySchedules,
   createDummyTutor,
   createDummyUser,
+  createEndedAppointment,
 } from '../data/users.dummy'
 import { AuthModule } from '../../src/auth/auth.module'
 import { Schedule } from '../../src/tutors/schedule.entity'
@@ -34,6 +35,11 @@ describe('AppointmentModule Test (e2e)', () => {
   let users: User[]
   let schedules: Schedule[]
   let appointments: Appointment[]
+
+  let adminUser: User
+  let userWithNoAppointments: User
+  let userWithAppointment: User
+  let endedAppointment: Appointment
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -84,18 +90,26 @@ describe('AppointmentModule Test (e2e)', () => {
       userRepository.save(users),
     ])
     schedules = createDummySchedules(tutors[0])
-    appointments = createDummyAppointment(users[0], tutors[0])
+    appointments = [
+      createDummyAppointment(users[0], tutors[0]),
+      createEndedAppointment(users[2], tutors[0]),
+    ]
 
     await Promise.all([
       scheduleRepository.save(schedules),
       appointmentRepository.save(appointments),
     ])
+
+    adminUser = users[0]
+    userWithNoAppointments = users[1]
+    userWithAppointment = users[2]
+    endedAppointment = appointments[1]
   })
 
   describe('POST /appointments 약속 잡기', () => {
     it('유저 약속 잡기', async () => {
       const loginData = {
-        username: users[1].username,
+        username: userWithNoAppointments.username,
         password: '123456',
       }
 
@@ -139,7 +153,7 @@ describe('AppointmentModule Test (e2e)', () => {
 
     it('유저 약속은 한 번에 하나만 잡을 수 있음', async () => {
       const loginData = {
-        username: users[1].username,
+        username: userWithNoAppointments.username,
         password: '123456',
       }
 
@@ -193,7 +207,7 @@ describe('AppointmentModule Test (e2e)', () => {
 
     it('어드민이 유저 약속 대신 잡기', async () => {
       const loginData = {
-        username: users[0].username,
+        username: adminUser.username,
         password: '123456',
       }
 
@@ -217,7 +231,7 @@ describe('AppointmentModule Test (e2e)', () => {
         .expect(200)
 
       const appointmentData = {
-        userId: users[1].id,
+        userId: userWithNoAppointments.id,
         tutorId: tutors[0].id,
         startTime: tutors[0].schedules[0].startTime,
       }
@@ -274,6 +288,35 @@ describe('AppointmentModule Test (e2e)', () => {
         formatDate(appointments[0].startTime)
       )
     })
+
+    it('유저는 15분 이하로 남은 약속 취소 불가', async () => {
+      const loginData = {
+        username: userWithAppointment.username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const {
+        body: { errors },
+      } = await request
+        .agent(app.getHttpServer())
+        .delete(`/appointments/${endedAppointment.id}`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(400)
+
+      expect(errors.cancelTime).toBeDefined()
+    })
   })
 
   describe('GET /appointments/me 유저 약속 가져오기', () => {
@@ -308,6 +351,83 @@ describe('AppointmentModule Test (e2e)', () => {
           user: expect.objectContaining({ username: loginData.username }),
         })
       )
+    })
+  })
+
+  describe('POST /appointments/feedback 피드백 남기기', () => {
+    it('끝난 약속 피드백 남기기', async () => {
+      const loginData = {
+        username: endedAppointment.tutor.username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const feedbackData = {
+        appointmentId: endedAppointment.id,
+        text: 'good tutee!!!',
+      }
+
+      const { body: feedback } = await request
+        .agent(app.getHttpServer())
+        .post('/appointments/feedback')
+        .send(feedbackData)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      expect(feedback.text).toEqual(feedbackData.text)
+    })
+
+    it('피드백은 한 번만 남길 수 있음', async () => {
+      const loginData = {
+        username: endedAppointment.tutor.username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const feedbackData = {
+        appointmentId: endedAppointment.id,
+        text: 'good tutee!!!',
+      }
+
+      const { body: feedback } = await request
+        .agent(app.getHttpServer())
+        .post('/appointments/feedback')
+        .send(feedbackData)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      expect(feedback.text).toEqual(feedbackData.text)
+
+      await request
+        .agent(app.getHttpServer())
+        .post('/appointments/feedback')
+        .send(feedbackData)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(400)
     })
   })
 

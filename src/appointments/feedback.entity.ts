@@ -1,8 +1,14 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne } from 'typeorm'
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToOne,
+  BaseEntity,
+} from 'typeorm'
 import { Appointment } from './appointment.entity'
 
 @Entity()
-export class Feedback {
+export class Feedback extends BaseEntity {
   @PrimaryGeneratedColumn()
   id!: number
 

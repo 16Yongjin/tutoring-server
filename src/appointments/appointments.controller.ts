@@ -12,7 +12,11 @@ import {
 import { AppointmentsService } from './appointments.service'
 import { ValidationPipe } from '../shared/pipes'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
-import { CreateAppointmentDto, RemoveAppointmentDto } from './dto'
+import {
+  CreateAppointmentDto,
+  FeedbackAppointmentDto,
+  RemoveAppointmentDto,
+} from './dto'
 import { Roles, UserInfo } from '../shared/decoratos'
 import { UserAuth } from '../shared/interfaces'
 import { Role } from '../shared/enums'
@@ -63,7 +67,30 @@ export class AppointmentsController {
     }
 
     return this.appointmentsService.removeAppointment({
+      role: user.role,
       appointmentId: id,
     })
+  }
+
+  @Post('feedback')
+  @Roles(Role.ADMIN, Role.TUTOR)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async feedbackAppointment(
+    @UserInfo() user: UserAuth,
+    @Body(new ValidationPipe()) dto: FeedbackAppointmentDto
+  ) {
+    const appointment = await this.appointmentsService.findOneById(
+      dto.appointmentId
+    )
+    const isAdmin = user.role === Role.ADMIN
+    const isTutorOwned = appointment.tutor.id === user.id
+    if (!isAdmin && !isTutorOwned) {
+      throw new UnauthorizedException({
+        message: "Yor're not allowed to feedback other's appointment",
+        errros: { appointmentId: 'not allowed' },
+      })
+    }
+
+    return this.appointmentsService.feedbackAppointment(dto)
   }
 }

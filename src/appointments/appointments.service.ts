@@ -9,8 +9,17 @@ import { TutorsService } from '../tutors/tutors.service'
 import { UsersService } from '../users/users.service'
 import { Appointment } from './appointment.entity'
 import { Feedback } from './feedback.entity'
-import { CreateAppointmentDto, RemoveAppointmentDto } from './dto'
+import {
+  CreateAppointmentDto,
+  FeedbackAppointmentDto,
+  RemoveAppointmentDto,
+} from './dto'
 import * as dayjs from 'dayjs'
+import { Role } from '../shared/enums'
+import {
+  APPOINTMENT_DURATION,
+  USER_APPOINTMENT_CANCEL_TIME_LIMIT,
+} from '../config/logic'
 
 @Injectable()
 export class AppointmentsService {
@@ -31,6 +40,13 @@ export class AppointmentsService {
   }
 
   async makeAppointment(dto: CreateAppointmentDto): Promise<Appointment> {
+    if (dayjs().isAfter(dto.startTime)) {
+      throw new BadRequestException({
+        message: 'Too late to make appointment',
+        errors: { startTime: "It's too late" },
+      })
+    }
+
     const user = await this.findUserWithNoAppointment(dto.userId)
     const tutor = await this.tutorsService.popSchedule(
       dto.tutorId,
@@ -41,7 +57,9 @@ export class AppointmentsService {
       user,
       tutor,
       startTime: dayjs(dto.startTime).set('seconds', 0),
-      endTime: dayjs(dto.startTime).set('seconds', 0).add(25, 'minutes'),
+      endTime: dayjs(dto.startTime)
+        .set('seconds', 0)
+        .add(APPOINTMENT_DURATION, 'minutes'),
     })
 
     return this.appointmentRepository.save(appointment)
@@ -49,6 +67,9 @@ export class AppointmentsService {
 
   async removeAppointment(dto: RemoveAppointmentDto): Promise<Appointment> {
     const appointment = await this.findOneById(dto.appointmentId)
+
+    if (dto.role === Role.USER) this.canUserCancelAppointment(appointment)
+
     await this.tutorsService.addSchedule(
       appointment.tutor.id,
       appointment.startTime
@@ -69,9 +90,6 @@ export class AppointmentsService {
       })
     }
 
-    delete appointment.user.password
-    delete appointment.tutor.password
-
     return appointment
   }
 
@@ -91,6 +109,44 @@ export class AppointmentsService {
         errors: { user: 'User already has appointment' },
       })
     }
+
     return user
+  }
+
+  canUserCancelAppointment(appointment: Appointment) {
+    if (
+      dayjs(appointment.startTime).diff(dayjs()) <
+      USER_APPOINTMENT_CANCEL_TIME_LIMIT
+    ) {
+      throw new BadRequestException({
+        message: "It's too late to cancel the appointment",
+        errors: { cancelTime: "I't too late" },
+      })
+    }
+  }
+
+  async feedbackAppointment({ appointmentId, text }: FeedbackAppointmentDto) {
+    const appointment = await this.findOneById(appointmentId)
+
+    if (dayjs().isBefore(appointment.endTime)) {
+      throw new BadRequestException({
+        message: "It's too early to leave a feedback",
+        errors: { currentTime: "It's too early" },
+      })
+    }
+
+    if (appointment.feedback) {
+      throw new BadRequestException({
+        message: 'Feedback already exists',
+        errors: { feedback: 'Alreay exists' },
+      })
+    }
+
+    const feedback = Feedback.create({
+      appointment,
+      text,
+    })
+
+    return this.feedbackRepository.save(feedback)
   }
 }

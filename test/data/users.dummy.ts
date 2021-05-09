@@ -20,6 +20,12 @@ export const createDummyUser = () => [
     fullname: faker.name.findName(),
     password: '123456',
   }),
+  User.create({
+    username: faker.internet.userName(),
+    email: faker.internet.email(),
+    fullname: faker.name.findName(),
+    password: '123456',
+  }),
 ]
 
 export const createDummyTutor = () => [
@@ -60,11 +66,18 @@ export const createDummySchedules = (tutor: Tutor) => [
   }),
 ]
 
-export const createDummyAppointment = (user: User, tutor: Tutor) => [
+export const createDummyAppointment = (user: User, tutor: Tutor) =>
   Appointment.create({
     user,
     tutor,
     startTime: day().add(4, 'hours').set('minutes', 30).set('seconds', 0),
     endTime: day().add(4, 'hours').set('minutes', 55).set('seconds', 0),
-  }),
-]
+  })
+
+export const createEndedAppointment = (user: User, tutor: Tutor) =>
+  Appointment.create({
+    user,
+    tutor,
+    startTime: day().subtract(1, 'hours').set('seconds', 0),
+    endTime: day().subtract(1, 'hours').add(25, 'minutes').set('seconds', 0),
+  })

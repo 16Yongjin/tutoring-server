@@ -13,6 +13,7 @@ import * as dayjs from 'dayjs'
 import { AddSchedulesDto } from './dto/create-schedules.dto'
 import { Schedule } from './schedule.entity'
 import { compareDate } from '../utils/compareDate'
+import { APPOINTMENT_DURATION } from '../config/logic'
 
 @Injectable()
 export class TutorsService {
@@ -93,7 +94,9 @@ export class TutorsService {
     const newSchedule = Schedule.create({
       tutor,
       startTime: dayjs(startTime).set('second', 0),
-      endTime: dayjs(startTime).set('second', 0).add(25, 'minutes'),
+      endTime: dayjs(startTime)
+        .set('second', 0)
+        .add(APPOINTMENT_DURATION, 'minutes'),
     })
 
     return this.scheduleRepository.save(newSchedule)
@@ -110,7 +113,7 @@ export class TutorsService {
         Schedule.create({
           tutor,
           startTime,
-          endTime: dayjs(startTime).add(25, 'minutes'),
+          endTime: dayjs(startTime).add(APPOINTMENT_DURATION, 'minutes'),
         })
       )
 
@@ -136,7 +139,6 @@ export class TutorsService {
 
   async popSchedule(id: number | string, date: Date) {
     const tutor = await this.findOneById(id)
-
     const schedule = this.findSchedule(tutor, date)
 
     if (!schedule) {
