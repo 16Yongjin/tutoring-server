@@ -14,6 +14,7 @@ import { AddSchedulesDto } from './dto/create-schedules.dto'
 import { Schedule } from './schedule.entity'
 import { compareDate } from '../utils/compareDate'
 import { APPOINTMENT_DURATION } from '../config/logic'
+import { PK } from '../shared/types'
 
 @Injectable()
 export class TutorsService {
@@ -51,10 +52,13 @@ export class TutorsService {
     return tutors
   }
 
-  async findOneById(id: number | string): Promise<Tutor> {
+  async findOneById(
+    id: PK,
+    relations: string[] = ['schedules']
+  ): Promise<Tutor> {
     const tutor = await this.tutorRepository.findOne({
       where: { id },
-      relations: ['schedules'],
+      relations,
     })
     if (!tutor) {
       const error = {
@@ -84,7 +88,7 @@ export class TutorsService {
     })
   }
 
-  async addSchedule(id: number | string, startTime: Date) {
+  async addSchedule(id: PK, startTime: Date) {
     const tutor = await this.findOneById(id)
 
     const existingSchedule = this.findSchedule(tutor, startTime)
@@ -101,7 +105,7 @@ export class TutorsService {
 
     return this.scheduleRepository.save(newSchedule)
   }
-  async addSchedules(id: number | string, { schedules }: AddSchedulesDto) {
+  async addSchedules(id: PK, { schedules }: AddSchedulesDto) {
     const tutor = await this.findOneById(id)
     const hasSchedule = tutor.schedules
       .map((s) => dayjs(s.startTime).format('YYYY-MM-DDTHH:mm'))
@@ -122,7 +126,7 @@ export class TutorsService {
     return this.findOneById(id)
   }
 
-  async removeSchedules(id: number | string, { schedules }: AddSchedulesDto) {
+  async removeSchedules(id: PK, { schedules }: AddSchedulesDto) {
     const tutor = await this.findOneById(id)
     const isTargetSchedule = schedules
       .map((d) => dayjs(d).format('YYYY-MM-DDTHH:mm'))
@@ -137,7 +141,7 @@ export class TutorsService {
     return this.findOneById(id)
   }
 
-  async popSchedule(id: number | string, date: Date) {
+  async popSchedule(id: PK, date: Date) {
     const tutor = await this.findOneById(id)
     const schedule = this.findSchedule(tutor, date)
 

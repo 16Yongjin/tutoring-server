@@ -7,16 +7,11 @@ import {
   Post,
   UnauthorizedException,
   UseGuards,
-  UsePipes,
 } from '@nestjs/common'
 import { AppointmentsService } from './appointments.service'
 import { ValidationPipe } from '../shared/pipes'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
-import {
-  CreateAppointmentDto,
-  FeedbackAppointmentDto,
-  RemoveAppointmentDto,
-} from './dto'
+import { CreateAppointmentDto, FeedbackAppointmentDto } from './dto'
 import { Roles, UserInfo } from '../shared/decoratos'
 import { UserAuth } from '../shared/interfaces'
 import { Role } from '../shared/enums'
@@ -27,7 +22,7 @@ export class AppointmentsController {
   constructor(private readonly appointmentsService: AppointmentsService) {}
 
   @Get('me')
-  @Roles(Role.ADMIN, Role.USER)
+  @Roles(Role.USER)
   @UseGuards(JwtAuthGuard, RolesGuard)
   findUserAppointment(@UserInfo('id') userId: number) {
     return this.appointmentsService.findUserAppointments(userId)
@@ -41,8 +36,8 @@ export class AppointmentsController {
     @Body(new ValidationPipe()) dto: CreateAppointmentDto
   ) {
     const isAdmin = user.role === Role.ADMIN
-    const isUserSelf = dto.userId !== user.id
-    if (!isAdmin && isUserSelf) {
+    const isUserSelf = dto.userId === user.id
+    if (!isAdmin && !isUserSelf) {
       throw new UnauthorizedException({
         message: "You're not allowed make other's appointment",
         errros: { userId: 'not allowed' },

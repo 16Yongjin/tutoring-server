@@ -13,6 +13,7 @@ import { RemoveSchedulesDto } from './dto/remove-schedules.dto'
 import { TutorsService } from './tutors.service'
 import { TutorGuard } from '../shared/guards/tutor.guard'
 import { ValidationPipe } from '../shared/pipes'
+import { PK } from '../shared/types'
 
 @Controller('tutors')
 export class TutorsController {
@@ -24,7 +25,7 @@ export class TutorsController {
   }
 
   @Get(':id')
-  findOneById(@Param('id') id: number | string) {
+  findOneById(@Param('id') id: PK) {
     return this.tutorService.findOneById(id)
   }
 

@@ -22,7 +22,7 @@ import { Feedback } from '../../src/appointments/feedback.entity'
 import { AppointmentsModule } from '../../src/appointments/appointments.module'
 import { Role } from '../../src/shared/enums'
 
-describe('AppointmentModule Test (e2e)', () => {
+xdescribe('AppointmentModule Test (e2e)', () => {
   let app: INestApplication
 
   let tutorRepository: Repository<Tutor>

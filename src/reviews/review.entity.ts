@@ -5,20 +5,25 @@ import {
   Column,
   CreateDateColumn,
   BeforeInsert,
+  BaseEntity,
 } from 'typeorm'
 import { User } from '../users/user.entity'
 import { Tutor } from '../tutors/tutor.entity'
 import { clamp } from 'lodash'
 
 @Entity()
-export class Review {
+export class Review extends BaseEntity {
   @PrimaryGeneratedColumn()
   id: number
 
-  @ManyToOne(() => Tutor, (tutor) => tutor.reviews)
+  @ManyToOne(() => Tutor, (tutor) => tutor.reviews, {
+    onDelete: 'CASCADE',
+  })
   tutor: Tutor
 
-  @ManyToOne(() => User, (user) => user.reviews)
+  @ManyToOne(() => User, (user) => user.reviews, {
+    onDelete: 'CASCADE',
+  })
   user: User
 
   @CreateDateColumn()

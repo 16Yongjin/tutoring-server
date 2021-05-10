@@ -5,6 +5,7 @@ import { User } from '../../src/users/user.entity'
 import { Tutor } from '../../src/tutors/tutor.entity'
 import { Schedule } from '../../src/tutors/schedule.entity'
 import { Appointment } from '../../src/appointments/appointment.entity'
+import { Review } from '../../src/reviews/review.entity'
 
 export const createDummyUser = () => [
   User.create({
@@ -12,6 +13,12 @@ export const createDummyUser = () => [
     email: faker.internet.email(),
     fullname: faker.name.findName(),
     role: Role.ADMIN,
+    password: '123456',
+  }),
+  User.create({
+    username: faker.internet.userName(),
+    email: faker.internet.email(),
+    fullname: faker.name.findName(),
     password: '123456',
   }),
   User.create({
@@ -80,4 +87,12 @@ export const createEndedAppointment = (user: User, tutor: Tutor) =>
     tutor,
     startTime: day().subtract(1, 'hours').set('seconds', 0),
     endTime: day().subtract(1, 'hours').add(25, 'minutes').set('seconds', 0),
+  })
+
+export const makeDummyReview = (user: User, tutor: Tutor) =>
+  Review.create({
+    user,
+    tutor,
+    text: 'hello world',
+    rating: 5,
   })

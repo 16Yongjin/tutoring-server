@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm'
+import { LessThan, Repository } from 'typeorm'
 import {
   Injectable,
   NotFoundException,
@@ -20,6 +20,7 @@ import {
   APPOINTMENT_DURATION,
   USER_APPOINTMENT_CANCEL_TIME_LIMIT,
 } from '../config/logic'
+import { PK } from '../shared/types'
 
 @Injectable()
 export class AppointmentsService {
@@ -32,7 +33,7 @@ export class AppointmentsService {
     private tutorsService: TutorsService
   ) {}
 
-  async findUserAppointments(userId: number | string) {
+  async findUserAppointments(userId: PK) {
     return this.appointmentRepository.find({
       where: { user: { id: userId } },
       relations: ['user', 'tutor', 'feedback'],
@@ -77,7 +78,7 @@ export class AppointmentsService {
     return this.appointmentRepository.remove(appointment)
   }
 
-  async findOneById(id: number | string) {
+  async findOneById(id: PK) {
     const appointment = await this.appointmentRepository.findOne({
       where: { id },
       relations: ['user', 'tutor', 'feedback'],
@@ -96,7 +97,7 @@ export class AppointmentsService {
   /**
    * 예정된 약속이 없는 경우에만 유저 반환
    */
-  async findUserWithNoAppointment(userId: number | string) {
+  async findUserWithNoAppointment(userId: PK) {
     const user = await this.usersService.findOneById(userId, ['appointments'])
     const now = dayjs()
     const hasAppointment = user.appointments.find((appointment) =>
@@ -148,5 +149,16 @@ export class AppointmentsService {
     })
 
     return this.feedbackRepository.save(feedback)
+  }
+
+  async hasUserMadeAppointmentWithTutor(userId: PK, tutorId: PK) {
+    const appointment = await this.appointmentRepository.findOne({
+      where: {
+        user: { id: userId },
+        tutor: { id: tutorId },
+        endTime: LessThan(dayjs()),
+      },
+    })
+    return !!appointment
   }
 }
