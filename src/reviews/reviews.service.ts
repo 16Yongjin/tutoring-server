@@ -90,6 +90,15 @@ export class ReviewsService {
     })
   }
 
+  findTutorReivew(tutorId: PK): Promise<Review[]> {
+    return this.reviewRepository
+      .createQueryBuilder('review')
+      .where({ tutor: { id: tutorId } })
+      .select(['review.text', 'review.rating', 'user.fullname'])
+      .leftJoin('review.user', 'user')
+      .getMany()
+  }
+
   async removeById(reviewId: PK): Promise<Review> {
     const review = await this.findOneById(reviewId)
     if (!review) {

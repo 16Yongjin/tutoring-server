@@ -40,6 +40,7 @@ describe.only('ReviewModule Test (e2e)', () => {
   let reviews: Review[]
 
   let adminUser: User
+  let nonAdminUser: User
   let userWithNoAppointments: User
   let userWithAppointment: User
   let endedAppointment: Appointment
@@ -109,6 +110,7 @@ describe.only('ReviewModule Test (e2e)', () => {
     ])
 
     adminUser = users[0]
+    nonAdminUser = users[1]
     userWithNoAppointments = users[1]
     userWithAppointment = users[2]
     endedAppointment = appointments[1]
@@ -153,6 +155,198 @@ describe.only('ReviewModule Test (e2e)', () => {
           rating: reviewData.rating,
           tutor: expect.objectContaining({ id: reviewData.tutorId }),
           user: expect.objectContaining({ id: reviewData.userId }),
+        })
+      )
+    })
+
+    it('이미 리뷰 완료한 튜터는 리뷰 작성 불가', async () => {
+      const review = reviews[0]
+      const loginData = {
+        username: review.user.username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const reviewData = {
+        userId: review.user.id,
+        tutorId: review.tutor.id,
+        text: 'hello world',
+        rating: 5,
+      }
+
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .post('/reviews')
+        .send(reviewData)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(400)
+
+      expect(body.message).toBeDefined()
+    })
+  })
+
+  describe('GET /reviews 모든 리뷰 가져오기', () => {
+    it('어드민 모든 리뷰 가져오기', async () => {
+      const loginData = {
+        username: adminUser.username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const { body: allReviews } = await request
+        .agent(app.getHttpServer())
+        .get('/reviews')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      allReviews.forEach((review, idx) =>
+        expect(review).toEqual(
+          expect.objectContaining({
+            id: reviews[idx].id,
+            rating: reviews[idx].rating,
+            text: reviews[idx].text,
+          })
+        )
+      )
+    })
+
+    it('어드민이 아닌 유저는 모든 리뷰 가져오기 불가', async () => {
+      const loginData = {
+        username: nonAdminUser.username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .get('/reviews')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(403)
+
+      expect(body.message).toBeDefined()
+    })
+  })
+
+  describe('GET /reviews/me 내 리뷰 가져오기', () => {
+    it('유저가 모든 리뷰 가져오기', async () => {
+      const review = reviews[0]
+      const loginData = {
+        username: review.user.username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const { body: allReviews } = await request
+        .agent(app.getHttpServer())
+        .get('/reviews/me')
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      expect(allReviews[0]).toEqual(
+        expect.objectContaining({
+          text: review.text,
+          rating: review.rating,
+          tutor: expect.objectContaining({ username: review.tutor.username }),
+        })
+      )
+    })
+  })
+
+  describe('GET /reviews/tutors/:id 튜터 리뷰 가져오기', () => {
+    it('튜터 리뷰 가져오기', async () => {
+      const review = reviews[0]
+      const tutorId = review.tutor.id
+      const { body: tutorReviews } = await request
+        .agent(app.getHttpServer())
+        .get(`/reviews/tutors/${tutorId}`)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      expect(tutorReviews[0]).toEqual(
+        expect.objectContaining({
+          text: review.text,
+          rating: review.rating,
+          user: { fullname: review.user.fullname },
+        })
+      )
+    })
+  })
+
+  describe('DELETE /reviews/:id 리뷰 삭제하기', () => {
+    it('어드민 리뷰 삭제하기', async () => {
+      const review = reviews[0]
+      const loginData = {
+        username: adminUser.username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const { body: removedReview } = await request
+        .agent(app.getHttpServer())
+        .delete(`/reviews/${review.id}`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      expect(removedReview).toEqual(
+        expect.objectContaining({
+          text: review.text,
+          rating: review.rating,
         })
       )
     })

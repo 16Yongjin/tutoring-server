@@ -30,14 +30,19 @@ export class ReviewsController {
   }
 
   @Get('me')
-  @Roles(Role.USER)
+  @Roles(Role.USER, Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
   findUserReivew(@UserInfo('id') userId: PK) {
     return this.reviewsService.findUserReviews(userId)
   }
 
+  @Get('tutors/:id')
+  findTutorReivew(@Param('id') tutorId: number) {
+    return this.reviewsService.findTutorReivew(tutorId)
+  }
+
   @Post()
-  @Roles(Role.USER)
+  @Roles(Role.USER, Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
   makeReview(
     @UserInfo() user: UserAuth,
