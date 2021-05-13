@@ -23,7 +23,7 @@ import { ReviewsModule } from '../../src/reviews/reviews.module'
 import { Review } from '../../src/reviews/review.entity'
 import { AppointmentsModule } from '../../src/appointments/appointments.module'
 
-describe.only('ReviewModule Test (e2e)', () => {
+xdescribe('ReviewModule Test (e2e)', () => {
   let app: INestApplication
 
   let tutorRepository: Repository<Tutor>
