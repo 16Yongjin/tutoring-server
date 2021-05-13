@@ -9,6 +9,7 @@ import {
   ManyToOne,
   OneToMany,
   BeforeInsert,
+  JoinColumn,
 } from 'typeorm'
 import { Exercise } from './exercise.entity'
 import { Topic } from './topic.entity'
@@ -36,12 +37,17 @@ export class Course extends BaseEntity {
   @UpdateDateColumn()
   updatedAt: Date
 
+  @Column({ type: 'integer' })
+  topicId: number
+
   @ManyToOne(() => Topic, (topic) => topic.courses, {
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'topicId' })
   topic: Topic
 
   @OneToMany(() => Exercise, (exercise) => exercise.course)
+  @JoinColumn()
   exercises: Exercise[]
 
   @BeforeInsert()

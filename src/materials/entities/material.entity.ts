@@ -8,6 +8,7 @@ import {
   BaseEntity,
   OneToMany,
   BeforeInsert,
+  JoinColumn,
 } from 'typeorm'
 import { Topic } from './topic.entity'
 
@@ -38,6 +39,7 @@ export class Material extends BaseEntity {
   updatedAt: Date
 
   @OneToMany(() => Topic, (topic) => topic.material)
+  @JoinColumn()
   topics: Topic[]
 
   @BeforeInsert()

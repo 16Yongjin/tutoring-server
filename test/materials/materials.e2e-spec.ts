@@ -498,7 +498,7 @@ describe.only('MaterialsModule Test (e2e)', () => {
 
   describe('DELETE /materials/courses/:id 강의 삭제하기', () => {
     it('강의 삭제하기', async () => {
-      const course = courses[20]
+      const course = courses[21]
       const topic = course.topic
       const material = topic.material
       const loginData = {
@@ -574,6 +574,202 @@ describe.only('MaterialsModule Test (e2e)', () => {
 
       expect(updatedCourse.exercises).toHaveLength(
         exercises.filter((e) => e.course.id === course.id).length - 1
+      )
+    })
+  })
+
+  describe('POST /materials/:id 교재 수정하기', () => {
+    it('교재 수정하기', async () => {
+      const material = materials[2]
+      const loginData = {
+        username: users[0].username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const materialData = {
+        id: material.id,
+        title: 'hello World',
+        description: 'world',
+        levelStart: 1,
+        levelEnd: 10,
+        image: '',
+      }
+      const { body: newMaterial } = await request
+        .agent(app.getHttpServer())
+        .post(`/materials/${material.id}`)
+        .send(materialData)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      expect(newMaterial).toEqual(expect.objectContaining(materialData))
+
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .get(`/materials/${newMaterial.id}`)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      expect(body).toEqual(expect.objectContaining(materialData))
+    })
+  })
+
+  describe('POST /materials/topics/:id 토픽 수정하기', () => {
+    it('토픽 수정하기', async () => {
+      const topic = topics[8]
+      const material = topic.material
+      const loginData = {
+        username: users[0].username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const topicData = {
+        id: topic.id,
+        title: 'hello world!',
+        description: 'world',
+      }
+
+      const { body: newTopic } = await request
+        .agent(app.getHttpServer())
+        .post(`/materials/topics/${topic.id}`)
+        .send(topicData)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      expect(newTopic).toEqual(expect.objectContaining(topicData))
+
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .get(`/materials/${material.id}`)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      expect(body.topics.find((t) => t.id === topic.id)).toEqual(
+        expect.objectContaining(topicData)
+      )
+    })
+  })
+
+  describe('POST /materials/courses/:id 강의 수정하기', () => {
+    it('강의 수정하기', async () => {
+      const course = courses[28]
+      const loginData = {
+        username: users[0].username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const courseData = {
+        id: course.id,
+        title: 'hello world',
+        description: 'world',
+        level: 5,
+        image: '',
+      }
+
+      const { body: updatedCourse } = await request
+        .agent(app.getHttpServer())
+        .post(`/materials/courses/${course.id}`)
+        .send(courseData)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      expect(updatedCourse).toEqual(expect.objectContaining(courseData))
+
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .get(`/materials/courses/${course.id}`)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      expect(body).toEqual(expect.objectContaining(courseData))
+    })
+  })
+
+  describe('POST /materials/exercise 연습 수정하기', () => {
+    it('연습 수정하기', async () => {
+      const exercise = exercises[120]
+      const course = exercise.course
+      const loginData = {
+        username: users[0].username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const exerciseData = {
+        id: exercise.id,
+        index: 4,
+        title: 'hello world!!',
+        description: 'world',
+        text: '<h>hello</h>',
+      }
+
+      const { body: updatedExercise } = await request
+        .agent(app.getHttpServer())
+        .post(`/materials/exercises/${exercise.id}`)
+        .send(exerciseData)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      expect(updatedExercise).toEqual(expect.objectContaining(exerciseData))
+
+      const { body: updatedCourse } = await request
+        .agent(app.getHttpServer())
+        .get(`/materials/courses/${course.id}`)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      expect(updatedCourse.exercises.find((e) => e.id === exercise.id)).toEqual(
+        expect.objectContaining(exerciseData)
       )
     })
   })

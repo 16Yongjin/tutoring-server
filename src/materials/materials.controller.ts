@@ -18,6 +18,10 @@ import {
   CreateExerciseDto,
   CreateMaterialDto,
   CreateTopicDto,
+  UpdateCourseDto,
+  UpdateExerciseDto,
+  UpdateMaterialDto,
+  UpdateTopicDto,
 } from './dto'
 import { MaterialsService } from './materials.service'
 
@@ -66,6 +70,31 @@ export class MaterialsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   createExercise(@Body(new ValidationPipe()) dto: CreateExerciseDto) {
     return this.materialService.createExercise(dto)
+  }
+
+  @Post(':id')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  updateMaterial(@Body(new ValidationPipe()) dto: UpdateMaterialDto) {
+    return this.materialService.updateMaterial(dto)
+  }
+  @Post('topics/:id')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  updateTopic(@Body(new ValidationPipe()) dto: UpdateTopicDto) {
+    return this.materialService.updateTopic(dto)
+  }
+  @Post('courses/:id')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  updateCourse(@Body(new ValidationPipe()) dto: UpdateCourseDto) {
+    return this.materialService.updateCourse(dto)
+  }
+  @Post('exercises/:id')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  updateExercise(@Body(new ValidationPipe()) dto: UpdateExerciseDto) {
+    return this.materialService.updateExercise(dto)
   }
 
   @Delete(':id')

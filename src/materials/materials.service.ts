@@ -13,6 +13,10 @@ import {
   CreateExerciseDto,
   CreateMaterialDto,
   CreateTopicDto,
+  UpdateCourseDto,
+  UpdateExerciseDto,
+  UpdateMaterialDto,
+  UpdateTopicDto,
 } from './dto'
 
 @Injectable()
@@ -178,69 +182,63 @@ export class MaterialsService {
   }
 
   createMaterial(dto: CreateMaterialDto) {
-    return getManager().transaction(async (manager) => {
-      const material = Material.create(dto)
-      return manager.save(material)
-    })
+    const material = Material.create(dto)
+    return this.materialRepository.save(material)
   }
 
-  async createTopic({ materialId, ...dto }: CreateTopicDto): Promise<Topic> {
-    return getManager().transaction(async (manager) => {
-      const material = await this.findMaterialT(manager, materialId)
-      const topic = Topic.create({
-        material,
-        ...dto,
-      })
-      return manager.save(topic)
-    })
+  async createTopic(dto: CreateTopicDto): Promise<Topic> {
+    const topic = Topic.create(dto)
+    return this.topicRepository.save(topic)
   }
 
-  async createCourse({ topicId, ...dto }: CreateCourseDto): Promise<Course> {
-    return getManager().transaction(async (manager) => {
-      const topic = await this.findTopicT(manager, topicId)
-      const course = Course.create({
-        topic,
-        ...dto,
-      })
-      return manager.save(course)
-    })
+  async createCourse(dto: CreateCourseDto): Promise<Course> {
+    const course = Course.create(dto)
+    return this.courseRepository.save(course)
   }
 
-  async createExercise({
-    courseId,
-    ...dto
-  }: CreateExerciseDto): Promise<Exercise> {
-    return getManager().transaction(async (manager) => {
-      const exercise = Exercise.create({
-        courseId,
-        ...dto,
-      })
-      return manager.save(exercise)
-    })
+  async createExercise(dto: CreateExerciseDto): Promise<Exercise> {
+    const exercise = Exercise.create(dto)
+    return this.exerciseRepository.save(exercise)
   }
 
   async removeMaterial(id: PK) {
-    return getManager().transaction(async (manager) => {
-      const material = await this.findMaterialT(manager, id)
-      return manager.remove(material)
-    })
+    return this.materialRepository.delete(id)
   }
   async removeTopic(id: PK) {
-    return getManager().transaction(async (manager) => {
-      const topic = await this.findTopicT(manager, id)
-      return manager.remove(topic)
-    })
+    return this.topicRepository.delete(id)
   }
   async removeCourse(id: PK) {
-    return getManager().transaction(async (manager) => {
-      const course = await this.findCourseT(manager, id)
-      return manager.remove(course)
-    })
+    return this.courseRepository.delete(id)
   }
   async removeExercise(id: PK) {
+    return this.exerciseRepository.delete(id)
+  }
+
+  updateMaterial({ id, ...dto }: UpdateMaterialDto) {
+    return getManager().transaction(async (manager) => {
+      const material = await this.findMaterialT(manager, id)
+      return manager.save(Material, { ...material, ...dto })
+    })
+  }
+
+  updateTopic({ id, ...dto }: UpdateTopicDto): Promise<Topic> {
+    return getManager().transaction(async (manager) => {
+      const topic = await this.findTopicT(manager, id)
+      return manager.save(Topic, { ...topic, ...dto })
+    })
+  }
+
+  updateCourse({ id, ...dto }: UpdateCourseDto): Promise<Course> {
+    return getManager().transaction(async (manager) => {
+      const course = await this.findCourseT(manager, id)
+      return manager.save(Course, { ...course, ...dto })
+    })
+  }
+
+  updateExercise({ id, ...dto }: UpdateExerciseDto): Promise<Exercise> {
     return getManager().transaction(async (manager) => {
       const exercise = await this.findExerciseT(manager, id)
-      return manager.remove(exercise)
+      return manager.save(Exercise, { ...exercise, ...dto })
     })
   }
 }

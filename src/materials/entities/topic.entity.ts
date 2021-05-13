@@ -7,6 +7,7 @@ import {
   BaseEntity,
   OneToMany,
   ManyToOne,
+  JoinColumn,
 } from 'typeorm'
 import { Course } from './course.entity'
 import { Material } from './material.entity'
@@ -28,11 +29,16 @@ export class Topic extends BaseEntity {
   @UpdateDateColumn()
   updatedAt: Date
 
+  @Column({ type: 'int' })
+  materialId: number
+
   @ManyToOne(() => Material, (material) => material.topics, {
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'materialId' })
   material: Material
 
   @OneToMany(() => Course, (course) => course.topic)
+  @JoinColumn()
   courses: Course[]
 }
