@@ -16,8 +16,9 @@ import {
 import { AuthModule } from '../../src/auth/auth.module'
 import { Schedule } from '../../src/tutors/schedule.entity'
 import { compareDate } from '../../src/utils/compareDate'
+import { Gender } from '../../src/shared/enums'
 
-xdescribe('TutorModule Test (e2e)', () => {
+describe('TutorModule Test (e2e)', () => {
   let app: INestApplication
   let tutorRepository: Repository<Tutor>
   let userRepository: Repository<User>
@@ -236,6 +237,116 @@ xdescribe('TutorModule Test (e2e)', () => {
         (s) => !compareDate(s.startTime, data.schedules[0])
       )
       expect(compare).toBeTruthy()
+    })
+  })
+
+  describe('POST /tutors/:id 튜터 정보 수정', () => {
+    it('튜터 정보 수정', async () => {
+      const tutor = tutors[1]
+      const loginData = {
+        username: tutor.username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const tutorData = {
+        username: tutor.username,
+        fullname: 'doge',
+        language: 'ko',
+        gender: Gender.MALE,
+      }
+
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .post(`/tutors/${tutor.id}`)
+        .send(tutorData)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      expect(body).toEqual(expect.objectContaining(tutorData))
+    })
+
+    it('Admin은 튜터 정보 수정 가능', async () => {
+      const tutor = tutors[1]
+      const loginData = {
+        username: users[0].username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const tutorData = {
+        username: tutor.username,
+        fullname: 'doge',
+        language: 'ko',
+        gender: Gender.MALE,
+        image: '123',
+      }
+
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .post(`/tutors/${tutor.id}`)
+        .send(tutorData)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      expect(body).toEqual(expect.objectContaining(tutorData))
+    })
+
+    it('Admin이 없는 튜터 정보 실패', async () => {
+      const tutor = tutors[1]
+      const loginData = {
+        username: users[0].username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const tutorData = {
+        username: 'Not existing',
+        fullname: 'doge',
+        language: 'ko',
+        gender: Gender.MALE,
+        image: '123',
+      }
+
+      await request
+        .agent(app.getHttpServer())
+        .post(`/tutors/${tutor.id}`)
+        .send(tutorData)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(404)
     })
   })
 

@@ -4,16 +4,20 @@ import {
   Get,
   Post,
   Request,
+  UnauthorizedException,
   UseGuards,
   UsePipes,
 } from '@nestjs/common'
 import { Request as Req } from 'express'
-import { CreateUserDto, LoginUserDto } from '../users/dto'
+import { ChangePasswordDto, CreateUserDto, LoginUserDto } from '../users/dto'
 import { ValidationPipe } from '../shared/pipes'
 import { AuthService } from './auth.service'
 import { LocalAuthGuard } from './guards/local-auth.guard'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
 import { CreateTutorDto } from '../tutors/dto/create-tutor.dto'
+import { UserInfo } from '../shared/decoratos'
+import { UserAuth } from '../shared/interfaces'
+import { Role } from '../shared/enums'
 
 @Controller('auth')
 export class AuthController {
@@ -46,5 +50,45 @@ export class AuthController {
   @Post('tutors/signup')
   async tutorSignup(@Body() dto: CreateTutorDto) {
     return this.authService.signupTutor(dto)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UsePipes(new ValidationPipe())
+  @Post('change-password')
+  async changePassword(
+    @UserInfo() user: UserAuth,
+    @Body() dto: ChangePasswordDto
+  ) {
+    const isAdmin = user.role === Role.ADMIN
+    const isUserSelf = user.username === dto.username
+
+    if (!isUserSelf && !isAdmin) {
+      throw new UnauthorizedException({
+        message: "You are not allowed to other's change password",
+        errors: { username: 'not allowed' },
+      })
+    }
+
+    return this.authService.changePassword(dto)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UsePipes(new ValidationPipe())
+  @Post('tutors/change-password')
+  async changeTutorPassword(
+    @UserInfo() user: UserAuth,
+    @Body() dto: ChangePasswordDto
+  ) {
+    const isAdmin = user.role === Role.ADMIN
+    const isTutorSelf = user.username === dto.username
+
+    if (!isTutorSelf && !isAdmin) {
+      throw new UnauthorizedException({
+        message: "You are not allowed to other's change password",
+        errors: { username: 'not allowed' },
+      })
+    }
+
+    return this.authService.changeTutorPassword(dto)
   }
 }

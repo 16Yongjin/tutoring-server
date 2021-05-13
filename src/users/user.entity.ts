@@ -9,7 +9,7 @@ import {
   OneToMany,
 } from 'typeorm'
 import * as argon2 from 'argon2'
-import { Role } from '../shared/enums'
+import { Gender, Role } from '../shared/enums'
 import { Appointment } from '../appointments/appointment.entity'
 import { Review } from '../reviews/review.entity'
 
@@ -47,6 +47,13 @@ export class User extends BaseEntity {
   async hashPassword() {
     this.password = await argon2.hash(this.password)
   }
+
+  @Column({
+    type: 'enum',
+    enum: Gender,
+    default: Gender.OTHER,
+  })
+  gender: Gender
 
   @Column({ default: 'en' })
   language!: string

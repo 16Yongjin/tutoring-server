@@ -11,7 +11,7 @@ import { Tutor } from './../../src/tutors/tutor.entity'
 import { Schedule } from '../../src/tutors/schedule.entity'
 import { createDummyTutor, createDummyUser } from '../data/users.dummy'
 
-xdescribe('AuthModule /auth (e2e)', () => {
+describe('AuthModule /auth (e2e)', () => {
   let app: INestApplication
   let tutorRepository: Repository<Tutor>
   let userRepository: Repository<User>
@@ -319,7 +319,7 @@ xdescribe('AuthModule /auth (e2e)', () => {
     })
   })
 
-  describe('POST /tutor/login 튜터 로그인', () => {
+  describe('POST /auth/tutors/login 튜터 로그인', () => {
     it('튜터 로그인 성공', async () => {
       const loginData = {
         username: tutors[0].username,
@@ -355,6 +355,153 @@ xdescribe('AuthModule /auth (e2e)', () => {
         .agent(app.getHttpServer())
         .post('/auth/login')
         .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(401)
+    })
+  })
+
+  describe('POST /auth/change-password 유저 비밀번호 변경', () => {
+    it('유저 비밀번호 변경', async () => {
+      const loginData = {
+        username: users[1].username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const changePasswordData = {
+        username: users[1].username,
+        password: '654321',
+      }
+
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/change-password')
+        .send(changePasswordData)
+        .set('Authorization', `Bearer ${token}`)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      expect(body.password).not.toBeDefined()
+
+      await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(changePasswordData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+    })
+
+    it('다른 유저의 비밀번호 변경 불가: ', async () => {
+      const loginData = {
+        username: users[1].username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const changePasswordData = {
+        username: users[2].username,
+        password: '654321',
+      }
+
+      await request
+        .agent(app.getHttpServer())
+        .post('/auth/change-password')
+        .send(changePasswordData)
+        .set('Authorization', `Bearer ${token}`)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(401)
+    })
+  })
+  describe('POST /auth/tutors/change-password 튜터 비밀번호 변경', () => {
+    it('튜터 비밀번호 변경', async () => {
+      const loginData = {
+        username: tutors[0].username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const changePasswordData = {
+        username: tutors[0].username,
+        password: '654321',
+      }
+
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/change-password')
+        .send(changePasswordData)
+        .set('Authorization', `Bearer ${token}`)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      expect(body.password).not.toBeDefined()
+
+      await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/login')
+        .send(changePasswordData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+    })
+
+    it('다른 튜터의 비밀번호 변경 불가: ', async () => {
+      const loginData = {
+        username: tutors[0].username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const changePasswordData = {
+        username: tutors[1].username,
+        password: '654321',
+      }
+
+      await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/change-password')
+        .send(changePasswordData)
+        .set('Authorization', `Bearer ${token}`)
         .set('Accept', 'application/json')
         .expect('Content-Type', /json/)
         .expect(401)

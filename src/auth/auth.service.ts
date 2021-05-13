@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { UsersService } from '../users/users.service'
-import { CreateUserDto, LoginUserDto } from '../users/dto'
+import { ChangePasswordDto, CreateUserDto, LoginUserDto } from '../users/dto'
 import { User } from '../users/user.entity'
 import { TutorsService } from '../tutors/tutors.service'
 import { CreateTutorDto } from '../tutors/dto/create-tutor.dto'
@@ -90,6 +90,16 @@ export class AuthService {
 
     const savedTutor = await this.tutorsService.create(dto)
     return this.buildUserRO(savedTutor)
+  }
+
+  async changePassword(dto: ChangePasswordDto) {
+    const user = await this.usersService.changePassword(dto)
+    return this.buildUserRO(user)
+  }
+
+  async changeTutorPassword(dto: ChangePasswordDto) {
+    const tutor = await this.tutorsService.changePassword(dto)
+    return this.buildUserRO(tutor)
   }
 
   public generateJWT(user: User) {

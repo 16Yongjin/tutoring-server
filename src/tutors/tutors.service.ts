@@ -4,17 +4,26 @@ import {
   NotFoundException,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { LoginUserDto } from '../users/dto'
-import { Repository } from 'typeorm'
-import { CreateTutorDto } from './dto/create-tutor.dto'
+import { ChangePasswordDto, LoginUserDto } from '../users/dto'
+import {
+  EntityManager,
+  getManager,
+  Repository,
+  TransactionManager,
+} from 'typeorm'
 import { Tutor } from './tutor.entity'
 import * as argon2 from 'argon2'
 import * as dayjs from 'dayjs'
-import { AddSchedulesDto } from './dto/create-schedules.dto'
 import { Schedule } from './schedule.entity'
 import { compareDate } from '../utils/compareDate'
 import { APPOINTMENT_DURATION } from '../config/logic'
 import { PK } from '../shared/types'
+import {
+  UpdateTutorDto,
+  CreateTutorDto,
+  AddSchedulesDto,
+  RemoveSchedulesDto,
+} from './dto'
 
 @Injectable()
 export class TutorsService {
@@ -79,6 +88,22 @@ export class TutorsService {
       .getOne()
   }
 
+  async findOneByUsernameT(
+    @TransactionManager() manager: EntityManager,
+    username: string
+  ): Promise<Tutor> {
+    const tutor = await manager.findOne(Tutor, {
+      where: { username },
+    })
+    if (!tutor) {
+      throw new NotFoundException({
+        message: 'Tutor not found',
+        errors: { username: 'not existing' },
+      })
+    }
+    return tutor
+  }
+
   checkExistingTutor(
     username: string,
     email: string
@@ -126,7 +151,7 @@ export class TutorsService {
     return this.findOneById(id)
   }
 
-  async removeSchedules(id: PK, { schedules }: AddSchedulesDto) {
+  async removeSchedules(id: PK, { schedules }: RemoveSchedulesDto) {
     const tutor = await this.findOneById(id)
     const isTargetSchedule = schedules
       .map((d) => dayjs(d).format('YYYY-MM-DDTHH:mm'))
@@ -161,5 +186,21 @@ export class TutorsService {
     return tutor.schedules?.find(({ startTime }) =>
       compareDate(startTime, date)
     )
+  }
+
+  async changePassword({ username, password }: ChangePasswordDto) {
+    return getManager().transaction(async (manager) => {
+      const tutor = await this.findOneByUsernameT(manager, username)
+      tutor.password = password
+      await tutor.hashPassword()
+      return manager.save(tutor)
+    })
+  }
+
+  async updateTutor({ username, ...dto }: UpdateTutorDto) {
+    return getManager().transaction(async (manager) => {
+      const tutor = await this.findOneByUsernameT(manager, username)
+      return manager.save(Tutor, { ...tutor, ...dto })
+    })
   }
 }

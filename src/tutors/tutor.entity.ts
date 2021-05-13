@@ -58,7 +58,7 @@ export class Tutor extends BaseEntity {
   @Column({
     type: 'enum',
     enum: Gender,
-    default: Gender.FEMALE,
+    default: Gender.OTHER,
   })
   gender: Gender
 

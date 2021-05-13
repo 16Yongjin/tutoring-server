@@ -1,4 +1,5 @@
 import { IsEmail, IsEmpty, IsNotEmpty, Length } from 'class-validator'
+import { Gender } from '../../shared/enums'
 
 export class CreateUserDto {
   @IsNotEmpty()
@@ -17,6 +18,8 @@ export class CreateUserDto {
   readonly fullname: string
 
   readonly language?: string
+
+  readonly gender?: Gender
 
   @IsEmpty()
   readonly role?: string
