@@ -7,9 +7,11 @@ import { UsersModule } from '../users/users.module'
 import { TutorsModule } from '../tutors/tutors.module'
 import { LocalStrategy } from './local.strategy'
 import { JwtStrategy } from './jwt.strategy'
+import { VerificationModule } from '../verification/verification.module'
 
 @Module({
   imports: [
+    VerificationModule,
     UsersModule,
     TutorsModule,
     PassportModule,

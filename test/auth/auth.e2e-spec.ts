@@ -10,14 +10,31 @@ import { Role } from './../../src/shared/enums'
 import { Tutor } from './../../src/tutors/tutor.entity'
 import { Schedule } from '../../src/tutors/schedule.entity'
 import { createDummyTutor, createDummyUser } from '../data/users.dummy'
+import * as emailUtils from '../../src/utils/sendEmail'
+import * as generateCode from '../../src/utils/generateCode'
+import {
+  EmailVerification,
+  TutorEmailVerification,
+} from '../../src/verification/email-verification.entity'
 
 describe('AuthModule /auth (e2e)', () => {
   let app: INestApplication
   let tutorRepository: Repository<Tutor>
   let userRepository: Repository<User>
   let scheduleRepository: Repository<Schedule>
+  let emailVerificationRepository: Repository<EmailVerification>
+  let tutorEmailVerificationRepository: Repository<TutorEmailVerification>
   let tutors: Tutor[]
   let users: User[]
+
+    // 이메일 보내기 기능 목업
+  ;(emailUtils.sendEmail as jest.Mock) = jest
+    .fn()
+    .mockImplementation(console.log)
+  // 토큰 생성 기능 목업
+  ;(generateCode.generateCode as jest.Mock) = jest
+    .fn()
+    .mockReturnValue('123456')
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -42,6 +59,12 @@ describe('AuthModule /auth (e2e)', () => {
     tutorRepository = moduleFixture.get('TutorRepository')
     userRepository = moduleFixture.get('UserRepository')
     scheduleRepository = moduleFixture.get('ScheduleRepository')
+    emailVerificationRepository = moduleFixture.get(
+      'EmailVerificationRepository'
+    )
+    tutorEmailVerificationRepository = moduleFixture.get(
+      'TutorEmailVerificationRepository'
+    )
   })
 
   beforeEach(async () => {
@@ -49,6 +72,8 @@ describe('AuthModule /auth (e2e)', () => {
       tutorRepository.createQueryBuilder().delete().from(Tutor).execute(),
       userRepository.createQueryBuilder().delete().from(User).execute(),
       scheduleRepository.createQueryBuilder().delete().from(Schedule).execute(),
+      emailVerificationRepository.clear(),
+      tutorEmailVerificationRepository.clear(),
     ])
     tutors = createDummyTutor()
     users = createDummyUser()
@@ -184,6 +209,63 @@ describe('AuthModule /auth (e2e)', () => {
         .set('Accept', 'application/json')
         .expect('Content-Type', /json/)
         .expect(401)
+    })
+
+    it('회원가입 후 이메일 미 인증 시 로그인 실패', async () => {
+      const signupData = {
+        username: 'test-user-3',
+        email: 'test-3@test.com',
+        fullname: 'paul',
+        password: '123456',
+      }
+
+      await request
+        .agent(app.getHttpServer())
+        .post('/auth/signup')
+        .send(signupData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(signupData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(403)
+
+      expect(body.errors.email).toBeDefined()
+    })
+
+    it('회원가입 후 이메일 인증 시 로그인 성공', async () => {
+      const signupData = {
+        username: 'test-user-3',
+        email: 'test-3@test.com',
+        fullname: 'paul',
+        password: '123456',
+      }
+
+      await request
+        .agent(app.getHttpServer())
+        .post('/auth/signup')
+        .send(signupData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      await request
+        .agent(app.getHttpServer())
+        .get('/auth/verify/123456')
+        .expect(200)
+
+      await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(signupData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
     })
   })
 
@@ -359,6 +441,62 @@ describe('AuthModule /auth (e2e)', () => {
         .expect('Content-Type', /json/)
         .expect(401)
     })
+
+    it('회원가입 후 이메일 미 인증 시 로그인 실패', async () => {
+      const signupData = {
+        username: 'test-tutor-3',
+        email: 'test-3@test.com',
+        fullname: 'paul',
+        password: '123456',
+      }
+      await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/signup')
+        .send(signupData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/login')
+        .send(signupData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(403)
+
+      expect(body.errors.email).toBeDefined()
+    })
+
+    it('회원가입 후 이메일 인증 시 로그인 성공', async () => {
+      const signupData = {
+        username: 'test-tutor-3',
+        email: 'test-3@test.com',
+        fullname: 'paul',
+        password: '123456',
+      }
+
+      await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/signup')
+        .send(signupData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      await request
+        .agent(app.getHttpServer())
+        .get('/auth/tutors/verify/123456')
+        .expect(200)
+
+      await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/login')
+        .send(signupData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+    })
   })
 
   describe('POST /auth/change-password 유저 비밀번호 변경', () => {
@@ -513,6 +651,8 @@ describe('AuthModule /auth (e2e)', () => {
       tutorRepository.createQueryBuilder().delete().from(Tutor).execute(),
       userRepository.createQueryBuilder().delete().from(User).execute(),
       scheduleRepository.createQueryBuilder().delete().from(Schedule).execute(),
+      emailVerificationRepository.clear(),
+      tutorEmailVerificationRepository.clear(),
     ])
   })
 

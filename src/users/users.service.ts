@@ -48,6 +48,27 @@ export class UsersService {
     return user
   }
 
+  async findOneByIdT(
+    @TransactionManager() manager: EntityManager,
+    id: PK,
+    relations: string[] = []
+  ): Promise<User> {
+    const user = await manager.findOne(User, {
+      where: { id },
+      relations,
+    })
+
+    if (!user) {
+      const error = {
+        message: 'User not found',
+        errors: { id: 'not existing' },
+      }
+      throw new NotFoundException(error)
+    }
+
+    return user
+  }
+
   /**
    * 비밀번호를 포함하는 유저 쿼리
    */

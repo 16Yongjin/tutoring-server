@@ -98,8 +98,8 @@ xdescribe('ReviewModule Test (e2e)', () => {
     ])
     schedules = createDummySchedules(tutors[0])
     appointments = [
-      createDummyAppointment(users[0], tutors[0]),
-      createEndedAppointment(users[2], tutors[0]),
+      createDummyAppointment(users[0], tutors[0], schedules[4]),
+      createEndedAppointment(users[2], tutors[0], schedules[0]),
     ]
     reviews = [makeDummyReview(users[0], tutors[0])]
 
@@ -107,6 +107,14 @@ xdescribe('ReviewModule Test (e2e)', () => {
       scheduleRepository.save(schedules),
       appointmentRepository.save(appointments),
       reviewRepository.save(reviews),
+    ])
+
+    appointments[0].schedule.appointmentId = appointments[0].id
+    appointments[1].schedule.appointmentId = appointments[1].id
+
+    await scheduleRepository.save([
+      appointments[0].schedule,
+      appointments[1].schedule,
     ])
 
     adminUser = users[0]

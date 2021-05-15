@@ -4,8 +4,11 @@ import {
   ManyToOne,
   Column,
   BaseEntity,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm'
 import { Tutor } from './tutor.entity'
+import { Appointment } from '../appointments/appointment.entity'
 
 @Entity()
 export class Schedule extends BaseEntity {
@@ -22,4 +25,11 @@ export class Schedule extends BaseEntity {
 
   @Column('timestamptz')
   endTime: Date
+
+  @Column({ type: 'integer', nullable: true })
+  appointmentId?: number
+
+  @OneToOne(() => Appointment, { nullable: true })
+  @JoinColumn({ name: 'appointmentId' })
+  appointment?: Appointment
 }

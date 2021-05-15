@@ -22,7 +22,7 @@ export class AppointmentsController {
   constructor(private readonly appointmentsService: AppointmentsService) {}
 
   @Get('me')
-  @Roles(Role.USER)
+  @Roles(Role.USER, Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
   findUserAppointment(@UserInfo('id') userId: number) {
     return this.appointmentsService.findUserAppointments(userId)

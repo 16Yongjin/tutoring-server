@@ -49,6 +49,9 @@ export class Tutor extends BaseEntity {
     this.password = await argon2.hash(this.password)
   }
 
+  @Column({ type: 'boolean', default: false })
+  verified: boolean
+
   @Column({ default: 'en' })
   language: string
 

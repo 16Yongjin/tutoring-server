@@ -43,6 +43,9 @@ export class User extends BaseEntity {
   @Column({ select: false })
   password!: string
 
+  @Column({ type: 'boolean', default: false })
+  verified: boolean
+
   @BeforeInsert()
   async hashPassword() {
     this.password = await argon2.hash(this.password)

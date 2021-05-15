@@ -47,7 +47,6 @@ export class Course extends BaseEntity {
   topic: Topic
 
   @OneToMany(() => Exercise, (exercise) => exercise.course)
-  @JoinColumn()
   exercises: Exercise[]
 
   @BeforeInsert()

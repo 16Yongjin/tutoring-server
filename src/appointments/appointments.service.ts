@@ -1,4 +1,11 @@
-import { LessThan, Repository } from 'typeorm'
+import {
+  EntityManager,
+  getManager,
+  LessThan,
+  MoreThan,
+  Repository,
+  TransactionManager,
+} from 'typeorm'
 import {
   Injectable,
   NotFoundException,
@@ -19,6 +26,8 @@ import { Role } from '../shared/enums'
 import {
   APPOINTMENT_DURATION,
   USER_APPOINTMENT_CANCEL_TIME_LIMIT,
+  USER_APPOINTMENT_COUNT_LIMIT,
+  USER_APPOINTMENT_MAKE_TIME_LIMIT,
 } from '../config/logic'
 import { PK } from '../shared/types'
 
@@ -34,48 +43,109 @@ export class AppointmentsService {
   ) {}
 
   async findUserAppointments(userId: PK) {
-    return this.appointmentRepository.find({
+    const appointment = await this.appointmentRepository.find({
       where: { user: { id: userId } },
       relations: ['user', 'tutor', 'feedback'],
     })
+
+    if (!appointment) {
+      throw new NotFoundException({
+        message: 'appointment not found',
+        errors: { id: 'not exists' },
+      })
+    }
+
+    return appointment
+  }
+
+  async findOneByIdT(
+    @TransactionManager() manager: EntityManager,
+    id: PK,
+    relations: string[] = []
+  ): Promise<Appointment> {
+    const appointment = await manager.findOne(Appointment, {
+      where: { id },
+      relations,
+    })
+
+    if (!appointment) {
+      throw new NotFoundException({
+        message: 'appointment not found',
+        errors: { id: 'not exists' },
+      })
+    }
+
+    return appointment
   }
 
   async makeAppointment(dto: CreateAppointmentDto): Promise<Appointment> {
-    if (dayjs().isAfter(dto.startTime)) {
+    if (dayjs(dto.startTime).diff(dayjs()) < USER_APPOINTMENT_MAKE_TIME_LIMIT) {
       throw new BadRequestException({
         message: 'Too late to make appointment',
         errors: { startTime: "It's too late" },
       })
     }
 
-    const user = await this.findUserWithNoAppointment(dto.userId)
-    const tutor = await this.tutorsService.popSchedule(
-      dto.tutorId,
-      dto.startTime
-    )
+    return getManager()
+      .transaction(async (manager) => {
+        const user = await this.usersService.findOneByIdT(manager, dto.userId)
+        const appointmentCount = await this.countUserDueAppointment(
+          manager,
+          dto.userId
+        )
+        if (appointmentCount >= USER_APPOINTMENT_COUNT_LIMIT) {
+          throw new BadRequestException({
+            message: "You'r appointment count limit is exceeded",
+            errors: { appointmentCount: 'has exceeded' },
+          })
+        }
 
-    const appointment = Appointment.create({
-      user,
-      tutor,
-      startTime: dayjs(dto.startTime).set('seconds', 0),
-      endTime: dayjs(dto.startTime)
-        .set('seconds', 0)
-        .add(APPOINTMENT_DURATION, 'minutes'),
-    })
+        const tutor = await this.tutorsService.findOneByIdT(
+          manager,
+          dto.tutorId
+        )
+        const schedule = this.tutorsService.findEmptySchedule(
+          tutor,
+          dto.startTime
+        )
+        if (!schedule) {
+          throw new BadRequestException({
+            message: 'Tutor is not available',
+            errors: { startTime: 'not available' },
+          })
+        }
 
-    return this.appointmentRepository.save(appointment)
+        const appointment = Appointment.create({
+          user,
+          tutor,
+          startTime: dayjs(dto.startTime).set('seconds', 0),
+          endTime: dayjs(dto.startTime)
+            .set('seconds', 0)
+            .add(APPOINTMENT_DURATION, 'minutes'),
+          schedule,
+        })
+        const savedAppointment = await manager.save(appointment)
+        await this.tutorsService.occupySchedule(manager, schedule, appointment)
+        return savedAppointment
+      })
+      .catch((e) => {
+        console.log(e)
+        throw e
+      })
   }
 
   async removeAppointment(dto: RemoveAppointmentDto): Promise<Appointment> {
-    const appointment = await this.findOneById(dto.appointmentId)
+    return getManager().transaction(async (manager) => {
+      const appointment = await this.findOneByIdT(manager, dto.appointmentId, [
+        'schedule',
+      ])
+      if (dto.role !== Role.ADMIN)
+        this.checkUserCanCancelAppointment(appointment)
 
-    if (dto.role === Role.USER) this.canUserCancelAppointment(appointment)
+      await this.tutorsService.releaseSchedule(manager, appointment.schedule)
 
-    await this.tutorsService.addSchedule(
-      appointment.tutor.id,
-      appointment.startTime
-    )
-    return this.appointmentRepository.remove(appointment)
+      return manager.remove(appointment)
+    })
   }
 
   async findOneById(id: PK) {
@@ -92,6 +162,19 @@ export class AppointmentsService {
     }
 
     return appointment
+  }
+
+  /**
+   * 아직 안 끝나서 남아 있는 약속 개수 세기
+   */
+  async countUserDueAppointment(
+    @TransactionManager() manager: EntityManager,
+    userId: PK
+  ): Promise<number> {
+    const appointment = await manager.find(Appointment, {
+      where: { user: { id: userId }, endTime: MoreThan(dayjs()) },
+    })
+    return appointment.length
   }
 
   /**
@@ -114,7 +197,7 @@ export class AppointmentsService {
     return user
   }
 
-  canUserCancelAppointment(appointment: Appointment) {
+  checkUserCanCancelAppointment(appointment: Appointment) {
     if (
       dayjs(appointment.startTime).diff(dayjs()) <
       USER_APPOINTMENT_CANCEL_TIME_LIMIT
@@ -127,28 +210,32 @@ export class AppointmentsService {
   }
 
   async feedbackAppointment({ appointmentId, text }: FeedbackAppointmentDto) {
-    const appointment = await this.findOneById(appointmentId)
+    return getManager().transaction(async (manager) => {
+      const appointment = await this.findOneByIdT(manager, appointmentId, [
+        'feedback',
+      ])
 
-    if (dayjs().isBefore(appointment.endTime)) {
-      throw new BadRequestException({
-        message: "It's too early to leave a feedback",
-        errors: { currentTime: "It's too early" },
+      if (dayjs().isBefore(appointment.endTime)) {
+        throw new BadRequestException({
+          message: "It's too early to leave a feedback",
+          errors: { currentTime: "It's too early" },
+        })
+      }
+
+      if (appointment.feedback) {
+        throw new BadRequestException({
+          message: 'Feedback already exists',
+          errors: { feedback: 'Alreay exists' },
+        })
+      }
+
+      const feedback = Feedback.create({
+        appointment,
+        text,
       })
-    }
 
-    if (appointment.feedback) {
-      throw new BadRequestException({
-        message: 'Feedback already exists',
-        errors: { feedback: 'Alreay exists' },
-      })
-    }
-
-    const feedback = Feedback.create({
-      appointment,
-      text,
+      return manager.save(feedback)
     })
-
-    return this.feedbackRepository.save(feedback)
   }
 
   async hasUserMadeAppointmentWithTutor(userId: PK, tutorId: PK) {

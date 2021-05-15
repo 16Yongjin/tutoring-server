@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Request,
   UnauthorizedException,
@@ -90,5 +91,17 @@ export class AuthController {
     }
 
     return this.authService.changeTutorPassword(dto)
+  }
+
+  @Get('verify/:token')
+  async verifyUser(@Param('token') token: string) {
+    const user = await this.authService.verifyUser(token)
+    return `Account(${user.email}) verified!! Please close this page and Login.`
+  }
+
+  @Get('tutors/verify/:token')
+  async verifyTutor(@Param('token') token: string) {
+    const tutor = await this.authService.verifyTutor(token)
+    return `Account(${tutor.email}) verified!! Please close this page and login.`
   }
 }

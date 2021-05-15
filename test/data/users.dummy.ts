@@ -14,24 +14,28 @@ export const createDummyUser = () => [
     fullname: faker.name.findName(),
     role: Role.ADMIN,
     password: '123456',
+    verified: true,
   }),
   User.create({
     username: faker.internet.userName(),
     email: faker.internet.email(),
     fullname: faker.name.findName(),
     password: '123456',
+    verified: true,
   }),
   User.create({
     username: faker.internet.userName(),
     email: faker.internet.email(),
     fullname: faker.name.findName(),
     password: '123456',
+    verified: true,
   }),
   User.create({
     username: faker.internet.userName(),
     email: faker.internet.email(),
     fullname: faker.name.findName(),
     password: '123456',
+    verified: true,
   }),
 ]
 
@@ -41,16 +45,23 @@ export const createDummyTutor = () => [
     email: faker.internet.email(),
     fullname: faker.name.findName(),
     password: '123456',
+    verified: true,
   }),
   Tutor.create({
     username: faker.internet.userName(),
     email: faker.internet.email(),
     fullname: faker.name.findName(),
     password: '123456',
+    verified: true,
   }),
 ]
 
 export const createDummySchedules = (tutor: Tutor) => [
+  Schedule.create({
+    tutor,
+    startTime: day().subtract(1, 'hours').set('minutes', 30).set('seconds', 0),
+    endTime: day().subtract(1, 'hours').set('minutes', 55).set('seconds', 0),
+  }),
   Schedule.create({
     tutor,
     startTime: day().add(1, 'hours').set('minutes', 30).set('seconds', 0),
@@ -73,21 +84,32 @@ export const createDummySchedules = (tutor: Tutor) => [
   }),
 ]
 
-export const createDummyAppointment = (user: User, tutor: Tutor) =>
-  Appointment.create({
+export const createDummyAppointment = (
+  user: User,
+  tutor: Tutor,
+  schedule: Schedule
+) => {
+  return Appointment.create({
     user,
     tutor,
-    startTime: day().add(4, 'hours').set('minutes', 30).set('seconds', 0),
-    endTime: day().add(4, 'hours').set('minutes', 55).set('seconds', 0),
+    startTime: schedule.startTime,
+    endTime: schedule.endTime,
+    schedule,
   })
-
-export const createEndedAppointment = (user: User, tutor: Tutor) =>
-  Appointment.create({
+}
+export const createEndedAppointment = (
+  user: User,
+  tutor: Tutor,
+  schedule: Schedule
+) => {
+  return Appointment.create({
     user,
     tutor,
-    startTime: day().subtract(1, 'hours').set('seconds', 0),
-    endTime: day().subtract(1, 'hours').add(25, 'minutes').set('seconds', 0),
+    startTime: schedule.startTime,
+    endTime: schedule.endTime,
+    schedule,
   })
+}
 
 export const makeDummyReview = (user: User, tutor: Tutor) =>
   Review.create({

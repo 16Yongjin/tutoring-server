@@ -10,6 +10,7 @@ import {
 import { User } from '../users/user.entity'
 import { Tutor } from '../tutors/tutor.entity'
 import { Feedback } from './feedback.entity'
+import { Schedule } from '../tutors/schedule.entity'
 
 @Entity()
 export class Appointment extends BaseEntity {
@@ -38,4 +39,7 @@ export class Appointment extends BaseEntity {
   @OneToOne(() => Feedback, (feedback) => feedback.appointment)
   @JoinColumn()
   feedback?: Feedback
+
+  @OneToOne(() => Schedule, (schedule) => schedule.appointment)
+  schedule: Schedule
 }

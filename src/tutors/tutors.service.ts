@@ -24,6 +24,7 @@ import {
   AddSchedulesDto,
   RemoveSchedulesDto,
 } from './dto'
+import { Appointment } from '../appointments/appointment.entity'
 
 @Injectable()
 export class TutorsService {
@@ -69,6 +70,27 @@ export class TutorsService {
       where: { id },
       relations,
     })
+    if (!tutor) {
+      const error = {
+        message: 'Tutor not found',
+        errors: { id: 'not existing' },
+      }
+      throw new NotFoundException(error)
+    }
+
+    return tutor
+  }
+
+  async findOneByIdT(
+    @TransactionManager() manager: EntityManager,
+    id: PK,
+    relations: string[] = ['schedules']
+  ): Promise<Tutor> {
+    const tutor = manager.findOne(Tutor, {
+      where: { id },
+      relations,
+    })
+
     if (!tutor) {
       const error = {
         message: 'Tutor not found',
@@ -131,60 +153,85 @@ export class TutorsService {
     return this.scheduleRepository.save(newSchedule)
   }
   async addSchedules(id: PK, { schedules }: AddSchedulesDto) {
-    const tutor = await this.findOneById(id)
-    const hasSchedule = tutor.schedules
-      .map((s) => dayjs(s.startTime).format('YYYY-MM-DDTHH:mm'))
-      .reduce((acc, v) => ((acc[v] = true), acc), {} as Record<string, boolean>)
+    return getManager().transaction(async (manager) => {
+      const tutor = await this.findOneByIdT(manager, id)
+      const hasSchedule = tutor.schedules
+        .map((s) => dayjs(s.startTime).format('YYYY-MM-DDTHH:mm'))
+        .reduce(
+          (acc, v) => ((acc[v] = true), acc),
+          {} as Record<string, boolean>
+        )
 
-    const filteredSchedules = schedules
-      .filter((d) => !hasSchedule[dayjs(d).format('YYYY-MM-DDTHH:mm')])
-      .map((startTime) =>
-        Schedule.create({
-          tutor,
-          startTime,
-          endTime: dayjs(startTime).add(APPOINTMENT_DURATION, 'minutes'),
-        })
-      )
+      const filteredSchedules = schedules
+        .filter((d) => !hasSchedule[dayjs(d).format('YYYY-MM-DDTHH:mm')])
+        .map((startTime) =>
+          Schedule.create({
+            tutor,
+            startTime,
+            endTime: dayjs(startTime).add(APPOINTMENT_DURATION, 'minutes'),
+          })
+        )
 
-    await this.scheduleRepository.save(filteredSchedules)
+      await manager.save(filteredSchedules)
 
-    return this.findOneById(id)
+      return this.findOneByIdT(manager, id)
+    })
   }
 
   async removeSchedules(id: PK, { schedules }: RemoveSchedulesDto) {
-    const tutor = await this.findOneById(id)
-    const isTargetSchedule = schedules
-      .map((d) => dayjs(d).format('YYYY-MM-DDTHH:mm'))
-      .reduce((acc, v) => ((acc[v] = true), acc), {} as Record<string, boolean>)
+    return getManager().transaction(async (manager) => {
+      const tutor = await this.findOneByIdT(manager, id)
+      const isTargetSchedule = schedules
+        .map((d) => dayjs(d).format('YYYY-MM-DDTHH:mm'))
+        .reduce(
+          (acc, v) => ((acc[v] = true), acc),
+          {} as Record<string, boolean>
+        )
 
-    const targetSchedules = tutor.schedules.filter(
-      (s) => isTargetSchedule[dayjs(s.startTime).format('YYYY-MM-DDTHH:mm')]
-    )
+      const targetSchedules = tutor.schedules.filter(
+        (s) => isTargetSchedule[dayjs(s.startTime).format('YYYY-MM-DDTHH:mm')]
+      )
 
-    await this.scheduleRepository.remove(targetSchedules)
+      if (targetSchedules.some((s) => !!s.appointmentId)) {
+        throw new BadRequestException({
+          message: 'Reserved Schedule cannot be deleted',
+          errors: { schedules: 'contains reserved schedule' },
+        })
+      }
 
-    return this.findOneById(id)
+      await manager.remove(targetSchedules)
+
+      return this.findOneByIdT(manager, id)
+    })
   }
 
-  async popSchedule(id: PK, date: Date) {
-    const tutor = await this.findOneById(id)
-    const schedule = this.findSchedule(tutor, date)
+  occupySchedule(
+    @TransactionManager() manager: EntityManager,
+    schedule: Schedule,
+    appointment: Appointment
+  ) {
+    schedule.appointmentId = appointment.id
+    return manager.save(schedule)
+  }
 
-    if (!schedule) {
-      throw new BadRequestException({
-        message: "Tutor's schedule is not available.",
-        errors: { startTime: 'schedule is not available' },
-      })
-    }
-
-    await this.scheduleRepository.remove(schedule)
-
-    return this.findOneById(id)
+  releaseSchedule(
+    @TransactionManager() manager: EntityManager,
+    schedule: Schedule
+  ) {
+    schedule.appointmentId = null
+    return manager.save(schedule)
   }
 
   findSchedule(tutor: Tutor, date: Date): Schedule {
     return tutor.schedules?.find(({ startTime }) =>
       compareDate(startTime, date)
+    )
+  }
+
+  findEmptySchedule(tutor: Tutor, date: Date): Schedule {
+    return tutor.schedules?.find(
+      ({ startTime, appointmentId }) =>
+        compareDate(startTime, date) && !appointmentId
     )
   }
 

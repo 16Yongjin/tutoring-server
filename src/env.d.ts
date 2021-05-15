@@ -6,5 +6,8 @@ declare namespace NodeJS {
     POSTGRES_PASSWORD: string
     POSTGRES_DATABASE: string
     POSTGRES_TEST_DATABASE: string
+    EMAIL_USERNAME: string;
+    EMAIL_PASSWORD: string;
+    DOMAIN_NAME: string;
   }
 }
