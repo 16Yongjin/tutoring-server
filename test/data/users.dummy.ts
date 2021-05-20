@@ -95,6 +95,7 @@ export const createDummyAppointment = (
     startTime: schedule.startTime,
     endTime: schedule.endTime,
     schedule,
+    material: 'conversation',
   })
 }
 export const createEndedAppointment = (
@@ -108,6 +109,7 @@ export const createEndedAppointment = (
     startTime: schedule.startTime,
     endTime: schedule.endTime,
     schedule,
+    material: 'conversation',
   })
 }
 

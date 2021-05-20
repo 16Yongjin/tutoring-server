@@ -1,6 +1,5 @@
 import { Type } from 'class-transformer'
-import { IsDate, IsNotEmpty } from 'class-validator'
-import { type } from 'node:os'
+import { IsDate, IsNotEmpty, MaxLength } from 'class-validator'
 
 export class CreateAppointmentDto {
   @IsNotEmpty()
@@ -12,4 +11,10 @@ export class CreateAppointmentDto {
   @IsDate()
   @Type(() => Date)
   startTime: Date
+
+  @IsNotEmpty()
+  material: string
+
+  @MaxLength(200)
+  request: string
 }

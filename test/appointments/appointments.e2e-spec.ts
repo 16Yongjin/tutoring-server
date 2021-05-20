@@ -142,6 +142,8 @@ describe('AppointmentModule Test (e2e)', () => {
         userId: id,
         tutorId: _tutor.id,
         startTime: _tutor.schedules[1].startTime,
+        material: 'teser1',
+        request: 'hello',
       }
 
       await request
@@ -199,6 +201,8 @@ describe('AppointmentModule Test (e2e)', () => {
         userId: id,
         tutorId: _tutor.id,
         startTime: _tutor.schedules[2].startTime,
+        material: 'teser1',
+        request: 'hello',
       }
 
       await request
@@ -214,6 +218,8 @@ describe('AppointmentModule Test (e2e)', () => {
         userId: id,
         tutorId: _tutor.id,
         startTime: _tutor.schedules[3].startTime,
+        material: 'teser1',
+        request: 'hello',
       }
 
       await request
@@ -276,6 +282,8 @@ describe('AppointmentModule Test (e2e)', () => {
         userId: userWithNoAppointments.id,
         tutorId: _tutor.id,
         startTime: _tutor.schedules[1].startTime,
+        material: 'teser1',
+        request: 'hello',
       }
 
       await request

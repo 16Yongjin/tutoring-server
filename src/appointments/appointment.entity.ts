@@ -33,6 +33,12 @@ export class Appointment extends BaseEntity {
   @Column('timestamptz')
   endTime: Date
 
+  @Column()
+  material: string
+
+  @Column({ default: '' })
+  request: string
+
   @Column({ type: 'integer', nullable: true })
   feedbackId: number
 

@@ -78,8 +78,14 @@ export class AppointmentsService {
     return appointment
   }
 
-  async makeAppointment(dto: CreateAppointmentDto): Promise<Appointment> {
-    if (dayjs(dto.startTime).diff(dayjs()) < USER_APPOINTMENT_MAKE_TIME_LIMIT) {
+  async makeAppointment({
+    userId,
+    tutorId,
+    startTime,
+    material,
+    request,
+  }: CreateAppointmentDto): Promise<Appointment> {
+    if (dayjs(startTime).diff(dayjs()) < USER_APPOINTMENT_MAKE_TIME_LIMIT) {
       throw new BadRequestException({
         message: 'Too late to make appointment',
         errors: { startTime: "It's too late" },
@@ -88,10 +94,10 @@ export class AppointmentsService {
 
     return getManager()
       .transaction(async (manager) => {
-        const user = await this.usersService.findOneByIdT(manager, dto.userId)
+        const user = await this.usersService.findOneByIdT(manager, userId)
         const appointmentCount = await this.countUserDueAppointment(
           manager,
-          dto.userId
+          userId
         )
         if (appointmentCount >= USER_APPOINTMENT_COUNT_LIMIT) {
           throw new BadRequestException({
@@ -100,14 +106,8 @@ export class AppointmentsService {
           })
         }
 
-        const tutor = await this.tutorsService.findOneByIdT(
-          manager,
-          dto.tutorId
-        )
-        const schedule = this.tutorsService.findEmptySchedule(
-          tutor,
-          dto.startTime
-        )
+        const tutor = await this.tutorsService.findOneByIdT(manager, tutorId)
+        const schedule = this.tutorsService.findEmptySchedule(tutor, startTime)
         if (!schedule) {
           throw new BadRequestException({
             message: 'Tutor is not available',
@@ -118,11 +118,13 @@ export class AppointmentsService {
         const appointment = Appointment.create({
           user,
           tutor,
-          startTime: dayjs(dto.startTime).set('seconds', 0),
-          endTime: dayjs(dto.startTime)
+          startTime: dayjs(startTime).set('seconds', 0),
+          endTime: dayjs(startTime)
             .set('seconds', 0)
             .add(APPOINTMENT_DURATION, 'minutes'),
           schedule,
+          material,
+          request,
         })
         const savedAppointment = await manager.save(appointment)
         await this.tutorsService.occupySchedule(manager, schedule, appointment)
