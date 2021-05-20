@@ -57,8 +57,8 @@ export class TutorsService {
     return null
   }
 
-  async findAll(): Promise<Tutor[]> {
-    const tutors = await this.tutorRepository.find({ relations: ['schedules'] })
+  async findAll(relations: string[] = []): Promise<Tutor[]> {
+    const tutors = await this.tutorRepository.find({ relations })
     return tutors
   }
 

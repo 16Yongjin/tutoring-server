@@ -6,9 +6,12 @@ import {
   BaseEntity,
   OneToOne,
   JoinColumn,
+  AfterLoad,
 } from 'typeorm'
+import * as dayjs from 'dayjs'
 import { Tutor } from './tutor.entity'
 import { Appointment } from '../appointments/appointment.entity'
+import { USER_APPOINTMENT_MAKE_TIME_LIMIT } from '../config/logic'
 
 @Entity()
 export class Schedule extends BaseEntity {
@@ -32,4 +35,15 @@ export class Schedule extends BaseEntity {
   @OneToOne(() => Appointment, { nullable: true })
   @JoinColumn({ name: 'appointmentId' })
   appointment?: Appointment
+
+  closed: boolean
+
+  reserved: boolean
+
+  @AfterLoad()
+  updateStatus() {
+    this.reserved = !!this.appointmentId
+    this.closed =
+      dayjs(this.startTime).diff(dayjs()) < USER_APPOINTMENT_MAKE_TIME_LIMIT
+  }
 }

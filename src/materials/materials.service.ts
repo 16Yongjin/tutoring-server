@@ -103,7 +103,7 @@ export class MaterialsService {
 
   async findCourse(
     id: PK,
-    relations = ['topic', 'exercises']
+    relations = ['topic', 'topic.material', 'exercises']
   ): Promise<Course> {
     const course = await this.courseRepository.findOne({
       where: { id },
@@ -115,6 +115,10 @@ export class MaterialsService {
         message: 'Course not found',
         errors: { courseId: 'not exists' },
       })
+    }
+
+    if (course.exercises) {
+      course.exercises.sort((a, b) => a.index - b.index)
     }
 
     return course

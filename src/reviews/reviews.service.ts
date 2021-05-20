@@ -94,7 +94,7 @@ export class ReviewsService {
     return this.reviewRepository
       .createQueryBuilder('review')
       .where({ tutor: { id: tutorId } })
-      .select(['review.text', 'review.rating', 'user.fullname'])
+      .select(['review.id', 'review.text', 'review.rating', 'user.fullname'])
       .leftJoin('review.user', 'user')
       .getMany()
   }

@@ -131,17 +131,17 @@ describe('AppointmentModule Test (e2e)', () => {
         .expect('Content-Type', /json/)
         .expect(201)
 
-      const { body: tutors } = await request
+      const { body: _tutor } = await request
         .agent(app.getHttpServer())
-        .get('/tutors')
+        .get(`/tutors/${tutors[0].id}`)
         .set('Accept', 'application/json')
         .expect('Content-Type', /json/)
         .expect(200)
 
       const appointmentData = {
         userId: id,
-        tutorId: tutors[0].id,
-        startTime: tutors[0].schedules[1].startTime,
+        tutorId: _tutor.id,
+        startTime: _tutor.schedules[1].startTime,
       }
 
       await request
@@ -160,12 +160,16 @@ describe('AppointmentModule Test (e2e)', () => {
         .expect('Content-Type', /json/)
         .expect(200)
 
-      expect(
-        tutor.schedules.find(
-          (s) =>
-            formatDate(s.startTime) === formatDate(appointmentData.startTime)
-        ).appointmentId
-      ).not.toBeNull()
+      const reservedSchedule = tutor.schedules.find(
+        (s) => formatDate(s.startTime) === formatDate(appointmentData.startTime)
+      )
+      expect(reservedSchedule.appointmentId).not.toBeNull()
+      expect(reservedSchedule).toEqual(
+        expect.objectContaining({
+          closed: false,
+          reserved: true,
+        })
+      )
     })
 
     it('유저 약속은 두 개까지 잡을 수 있음', async () => {
@@ -184,17 +188,17 @@ describe('AppointmentModule Test (e2e)', () => {
         .expect('Content-Type', /json/)
         .expect(201)
 
-      const { body: tutors } = await request
+      const { body: _tutor } = await request
         .agent(app.getHttpServer())
-        .get('/tutors')
+        .get(`/tutors/${tutors[0].id}`)
         .set('Accept', 'application/json')
         .expect('Content-Type', /json/)
         .expect(200)
 
       const appointmentData1 = {
         userId: id,
-        tutorId: tutors[0].id,
-        startTime: tutors[0].schedules[2].startTime,
+        tutorId: _tutor.id,
+        startTime: _tutor.schedules[2].startTime,
       }
 
       await request
@@ -208,8 +212,8 @@ describe('AppointmentModule Test (e2e)', () => {
 
       const appointmentData2 = {
         userId: id,
-        tutorId: tutors[0].id,
-        startTime: tutors[0].schedules[3].startTime,
+        tutorId: _tutor.id,
+        startTime: _tutor.schedules[3].startTime,
       }
 
       await request
@@ -261,17 +265,17 @@ describe('AppointmentModule Test (e2e)', () => {
 
       expect(role).toBe(Role.ADMIN)
 
-      const { body: tutors } = await request
+      const { body: _tutor } = await request
         .agent(app.getHttpServer())
-        .get('/tutors')
+        .get(`/tutors/${tutors[0].id}`)
         .set('Accept', 'application/json')
         .expect('Content-Type', /json/)
         .expect(200)
 
       const appointmentData = {
         userId: userWithNoAppointments.id,
-        tutorId: tutors[0].id,
-        startTime: tutors[0].schedules[1].startTime,
+        tutorId: _tutor.id,
+        startTime: _tutor.schedules[1].startTime,
       }
 
       await request

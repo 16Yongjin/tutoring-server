@@ -24,11 +24,21 @@ export class AuthService {
 
   async validateUser(username: string, pass: string): Promise<any> {
     const user = await this.usersService.findOneByUsername(username)
-    if (!user) return null
+    if (!user) {
+      throw new UnauthorizedException({
+        message: 'Username not exists',
+        errors: { username: 'username not exists' },
+      })
+    }
 
     const isValid = await argon2.verify(user.password, pass)
 
-    if (!isValid) return null
+    if (!isValid) {
+      throw new UnauthorizedException({
+        message: 'Wrong password',
+        errors: { password: 'wrong password' },
+      })
+    }
 
     if (!user.verified) {
       throw new ForbiddenException({
@@ -145,6 +155,8 @@ export class AuthService {
       username: user.username,
       email: user.email,
       role: user.role,
+      image: user.image,
+      language: user.language,
       exp: exp.getTime() / 1000,
     })
   }

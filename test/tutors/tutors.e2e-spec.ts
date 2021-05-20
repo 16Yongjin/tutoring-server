@@ -98,8 +98,17 @@ describe('TutorModule Test (e2e)', () => {
         .set('Accept', 'application/json')
         .expect('Content-Type', /json/)
         .expect(200)
+
       expect(body).toEqual(expect.objectContaining({ id }))
       expect(body.password).not.toBeDefined()
+      if (body.schedules.length) {
+        expect(body.schedules[0]).toEqual(
+          expect.objectContaining({
+            reserved: expect.any(Boolean),
+            closed: expect.any(Boolean),
+          })
+        )
+      }
     })
 
     it('존재하지 않은 튜터 확인 시 에러', async () => {

@@ -62,7 +62,7 @@ export class ReviewsController {
   @Delete(':id')
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  async removeAppointment(@Param('id') id: number) {
+  async removeReview(@Param('id') id: number) {
     return this.reviewsService.removeById(id)
   }
 }
