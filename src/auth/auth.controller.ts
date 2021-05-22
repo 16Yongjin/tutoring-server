@@ -15,10 +15,11 @@ import { ValidationPipe } from '../shared/pipes'
 import { AuthService } from './auth.service'
 import { LocalAuthGuard } from './guards/local-auth.guard'
 import { JwtAuthGuard } from './guards/jwt-auth.guard'
-import { CreateTutorDto } from '../tutors/dto/create-tutor.dto'
-import { UserInfo } from '../shared/decoratos'
+import { Roles, UserInfo } from '../shared/decoratos'
 import { UserAuth } from '../shared/interfaces'
 import { Role } from '../shared/enums'
+import { RolesGuard } from '../shared/guards'
+import { AcceptTutorDto, CreateTutorDto } from '../tutors/dto'
 
 @Controller('auth')
 export class AuthController {
@@ -103,5 +104,12 @@ export class AuthController {
   async verifyTutor(@Param('token') token: string) {
     const tutor = await this.authService.verifyTutor(token)
     return `Account(${tutor.email}) verified!! Please close this page and login.`
+  }
+
+  @Post('tutors/accept')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  acceptTutor(@Body(new ValidationPipe()) dto: AcceptTutorDto) {
+    return this.authService.acceptTutor(dto)
   }
 }

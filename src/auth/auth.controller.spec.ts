@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import * as httpMocks from 'node-mocks-http'
 import { AuthController } from './auth.controller'
-
 import { User } from '../users/user.entity'
 import { UsersService } from '../users/users.service'
 import { mockUserData } from '../users/mocks/users.mock'

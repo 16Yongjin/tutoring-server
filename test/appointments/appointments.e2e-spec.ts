@@ -116,6 +116,9 @@ describe('AppointmentModule Test (e2e)', () => {
 
   describe('POST /appointments 약속 잡기', () => {
     it('유저 약속 잡기', async () => {
+      /**
+       * 로그인
+       */
       const loginData = {
         username: userWithNoAppointments.username,
         password: '123456',
@@ -131,6 +134,9 @@ describe('AppointmentModule Test (e2e)', () => {
         .expect('Content-Type', /json/)
         .expect(201)
 
+      /**
+       * 튜터 정보 가져오기
+       */
       const { body: _tutor } = await request
         .agent(app.getHttpServer())
         .get(`/tutors/${tutors[0].id}`)
@@ -138,6 +144,9 @@ describe('AppointmentModule Test (e2e)', () => {
         .expect('Content-Type', /json/)
         .expect(200)
 
+      /**
+       * 약속 잡기
+       */
       const appointmentData = {
         userId: id,
         tutorId: _tutor.id,
@@ -155,6 +164,9 @@ describe('AppointmentModule Test (e2e)', () => {
         .expect('Content-Type', /json/)
         .expect(201)
 
+      /**
+       * 약속 잡힌 후 튜터의 스케쥴이 변경됐는지 확인
+       */
       const { body: tutor } = await request
         .agent(app.getHttpServer())
         .get(`/tutors/${appointmentData.tutorId}`)
@@ -170,6 +182,30 @@ describe('AppointmentModule Test (e2e)', () => {
         expect.objectContaining({
           closed: false,
           reserved: true,
+        })
+      )
+
+      /**
+       * 스케쥴을 가져올 때, 유저가 잡은 약속 정보가 포함됐는지 확인
+       */
+      const { body: _schedules } = await request
+        .agent(app.getHttpServer())
+        .get(`/tutors/${appointmentData.tutorId}/schedules`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      expect(
+        _schedules.find(
+          (s) => s.appointmentId === reservedSchedule.appointmentId
+        )
+      ).toEqual(
+        expect.objectContaining({
+          appointment: expect.objectContaining({
+            material: appointmentData.material,
+            request: appointmentData.request,
+          }),
         })
       )
     })
@@ -401,6 +437,41 @@ describe('AppointmentModule Test (e2e)', () => {
       const { body } = await request
         .agent(app.getHttpServer())
         .get(`/appointments/me`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      expect(body[0]).toEqual(
+        expect.objectContaining({
+          id: appointments[0].id,
+          startTime: appointments[0].startTime.toISOString(),
+          user: expect.objectContaining({ username: loginData.username }),
+        })
+      )
+    })
+  })
+
+  describe('GET /appointments/tutor 튜터 약속 가져오기', () => {
+    it('튜터 약속 가져오기', async () => {
+      const loginData = {
+        username: tutors[0].username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .get(`/appointments/tutor`)
         .set('Accept', 'application/json')
         .set('Authorization', `Bearer ${token}`)
         .expect('Content-Type', /json/)

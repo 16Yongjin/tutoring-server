@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   Post,
@@ -21,11 +22,59 @@ import { RolesGuard } from '../shared/guards'
 export class AppointmentsController {
   constructor(private readonly appointmentsService: AppointmentsService) {}
 
+  @Get()
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findAppointments() {
+    return this.appointmentsService.findAppointments()
+  }
+
+  @Get('upcoming')
+  @Roles(Role.USER, Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findUpcomingUserAppointments(@UserInfo('id') userId: number) {
+    return this.appointmentsService.findUpcomingUserAppointment(userId)
+  }
+
+  @Get('tutors/upcoming')
+  @Roles(Role.TUTOR, Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findUpcomingTutorAppointments(@UserInfo('id') tutorId: number) {
+    return this.appointmentsService.findUpcomingTutorAppointment(tutorId)
+  }
+
   @Get('me')
   @Roles(Role.USER, Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findUserAppointment(@UserInfo('id') userId: number) {
+  findUserAppointments(@UserInfo('id') userId: number) {
     return this.appointmentsService.findUserAppointments(userId)
+  }
+
+  @Get('tutors')
+  @Roles(Role.USER, Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findTutorAppointments(@UserInfo('id') tutorId: number) {
+    return this.appointmentsService.findTutorAppointments(tutorId)
+  }
+
+  @Get(':id')
+  @Roles(Role.ADMIN, Role.USER, Role.TUTOR)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async findOneById(@Param('id') id: number, @UserInfo() user: UserAuth) {
+    const appointment = await this.appointmentsService.findOneById(id)
+
+    const isAdmin = user.role === Role.ADMIN
+    const isOwner =
+      user.id === appointment.user.id || user.id === appointment.tutor.id
+
+    if (!isAdmin && !isOwner) {
+      throw new ForbiddenException({
+        message: 'You are not allowed to access appointment.',
+        errors: { id: 'not allowed' },
+      })
+    }
+
+    return appointment
   }
 
   @Post()

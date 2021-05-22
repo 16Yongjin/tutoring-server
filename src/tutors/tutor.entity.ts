@@ -52,6 +52,9 @@ export class Tutor extends BaseEntity {
   @Column({ type: 'boolean', default: false })
   verified: boolean
 
+  @Column({ type: 'boolean', default: false })
+  accepted: boolean
+
   @Column({ default: 'en' })
   language: string
 
@@ -74,6 +77,9 @@ export class Tutor extends BaseEntity {
     default: Country.Korea,
   })
   country: Country
+
+  @Column({ default: '' })
+  youtube: string
 
   @OneToMany(() => Schedule, (schedule) => schedule.tutor, {
     cascade: true,

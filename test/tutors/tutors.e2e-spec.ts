@@ -82,9 +82,64 @@ describe('TutorModule Test (e2e)', () => {
         .expect(200)
 
       expect(body).toEqual(expect.any(Array))
-      if (body.length) {
-        expect(body[0].password).not.toBeDefined()
+      expect(body[0].password).not.toBeDefined()
+      expect(body[0]).toEqual(
+        expect.objectContaining({
+          id: expect.any(Number),
+          fullname: expect.any(String),
+          language: expect.any(String),
+          image: expect.any(String),
+          gender: expect.any(String),
+          presentation: expect.any(String),
+          country: expect.any(String),
+        })
+      )
+      expect(body[0]).not.toEqual(
+        expect.objectContaining({
+          email: expect.any(String),
+          username: expect.any(String),
+        })
+      )
+    })
+  })
+
+  describe('GET /tutors/admin 어드민이 모든 튜터 정보 가져오기', () => {
+    it('어드민이 모든 튜터 가져오기', async () => {
+      const loginData = {
+        username: users[0].username,
+        password: '123456',
       }
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .set('Accept', 'application/json')
+        .send(loginData)
+
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .get('/tutors/admin')
+        .set('Authorization', `Bearer ${token}`)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      expect(body).toEqual(expect.any(Array))
+      expect(body[0].password).not.toBeDefined()
+      expect(body[0]).toEqual(
+        expect.objectContaining({
+          id: expect.any(Number),
+          fullname: expect.any(String),
+          language: expect.any(String),
+          image: expect.any(String),
+          gender: expect.any(String),
+          presentation: expect.any(String),
+          country: expect.any(String),
+          verified: expect.any(Boolean),
+          accepted: expect.any(Boolean),
+        })
+      )
     })
   })
 

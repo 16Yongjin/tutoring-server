@@ -8,6 +8,7 @@ import { ChangePasswordDto, LoginUserDto } from '../users/dto'
 import {
   EntityManager,
   getManager,
+  MoreThan,
   Repository,
   TransactionManager,
 } from 'typeorm'
@@ -23,6 +24,7 @@ import {
   CreateTutorDto,
   AddSchedulesDto,
   RemoveSchedulesDto,
+  AcceptTutorDto,
 } from './dto'
 import { Appointment } from '../appointments/appointment.entity'
 
@@ -57,7 +59,25 @@ export class TutorsService {
     return null
   }
 
-  async findAll(relations: string[] = []): Promise<Tutor[]> {
+  async findAllByUser(): Promise<Tutor[]> {
+    const tutors = await this.tutorRepository
+      .createQueryBuilder('tutor')
+      .select([
+        'tutor.id',
+        'tutor.fullname',
+        'tutor.language',
+        'tutor.image',
+        'tutor.gender',
+        'tutor.presentation',
+        'tutor.country',
+      ])
+      .where({ verified: true, accepted: true })
+      .getMany()
+
+    return tutors
+  }
+
+  async findAllByAdmin(relations: string[] = []): Promise<Tutor[]> {
     const tutors = await this.tutorRepository.find({ relations })
     return tutors
   }
@@ -135,6 +155,21 @@ export class TutorsService {
     })
   }
 
+  async findTutorSchedules({ tutorId, userId }: { tutorId: PK; userId?: PK }) {
+    const todayStart = dayjs().startOf('day')
+    return this.scheduleRepository
+      .createQueryBuilder('schedule')
+      .leftJoinAndSelect(
+        'schedule.appointment',
+        'appointment',
+        'appointment.userId = :userId',
+        { userId }
+      )
+      .where('schedule.tutorId = :tutorId', { tutorId })
+      .andWhere('schedule.startTime > :todayStart', { todayStart })
+      .getMany()
+  }
+
   async addSchedule(id: PK, startTime: Date) {
     const tutor = await this.findOneById(id)
 
@@ -152,6 +187,7 @@ export class TutorsService {
 
     return this.scheduleRepository.save(newSchedule)
   }
+
   async addSchedules(id: PK, { schedules }: AddSchedulesDto) {
     return getManager().transaction(async (manager) => {
       const tutor = await this.findOneByIdT(manager, id)
@@ -248,6 +284,14 @@ export class TutorsService {
     return getManager().transaction(async (manager) => {
       const tutor = await this.findOneByUsernameT(manager, username)
       return manager.save(Tutor, { ...tutor, ...dto })
+    })
+  }
+
+  async acceptTutor({ tutorId }: AcceptTutorDto) {
+    return getManager().transaction(async (manager) => {
+      const tutor = await this.findOneByIdT(manager, tutorId, [])
+      tutor.accepted = true
+      return manager.save(Tutor, tutor)
     })
   }
 }

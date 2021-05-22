@@ -468,7 +468,7 @@ describe('AuthModule /auth (e2e)', () => {
       expect(body.errors.email).toBeDefined()
     })
 
-    it('회원가입 후 이메일 인증 시 로그인 성공', async () => {
+    it('회원가입 & 이메일 인증 후 관리자 미 승인 시 로그인 실패', async () => {
       const signupData = {
         username: 'test-tutor-3',
         email: 'test-3@test.com',
@@ -488,6 +488,64 @@ describe('AuthModule /auth (e2e)', () => {
         .agent(app.getHttpServer())
         .get('/auth/tutors/verify/123456')
         .expect(200)
+
+      await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/login')
+        .send(signupData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(403)
+    })
+
+    it('회원가입 & 이메일 인증 후 관리자 승인 시 로그인 성공', async () => {
+      const signupData = {
+        username: 'test-tutor-4',
+        email: 'test-4@test.com',
+        fullname: 'paul',
+        password: '123456',
+      }
+
+      const { body: tutor } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/signup')
+        .send(signupData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      await request
+        .agent(app.getHttpServer())
+        .get('/auth/tutors/verify/123456')
+        .expect(200)
+
+      const adminLoginData = {
+        username: users[0].username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(adminLoginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const tutorAcceptData = {
+        tutorId: tutor.id,
+      }
+
+      await request
+        .agent(app.getHttpServer())
+        .post('/auth/tutors/accept')
+        .send(tutorAcceptData)
+        .set('Authorization', `Bearer ${token}`)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
 
       await request
         .agent(app.getHttpServer())

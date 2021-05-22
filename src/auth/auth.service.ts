@@ -8,9 +8,9 @@ import {
 import { JwtService } from '@nestjs/jwt'
 import { UsersService } from '../users/users.service'
 import { ChangePasswordDto, CreateUserDto, LoginUserDto } from '../users/dto'
+import { AcceptTutorDto, CreateTutorDto } from '../tutors/dto'
 import { User } from '../users/user.entity'
 import { TutorsService } from '../tutors/tutors.service'
-import { CreateTutorDto } from '../tutors/dto/create-tutor.dto'
 import { VerificationService } from '../verification/verification.service'
 
 @Injectable()
@@ -52,16 +52,33 @@ export class AuthService {
 
   async validateTutor(username: string, pass: string): Promise<any> {
     const tutor = await this.tutorsService.findOneByUsername(username)
-    if (!tutor) return null
+    if (!tutor) {
+      throw new UnauthorizedException({
+        message: 'Username not exists',
+        errors: { username: 'username not exists' },
+      })
+    }
 
     const isValid = await argon2.verify(tutor.password, pass)
 
-    if (!isValid) return null
+    if (!isValid) {
+      throw new UnauthorizedException({
+        message: 'Wrong password',
+        errors: { password: 'wrong password' },
+      })
+    }
 
     if (!tutor.verified) {
       throw new ForbiddenException({
         message: 'Please verify your email.',
         errors: { email: 'not verified' },
+      })
+    }
+
+    if (!tutor.accepted) {
+      throw new ForbiddenException({
+        message: 'Waiting for admin to accept tutor...',
+        errors: { tutor: 'not accepted' },
       })
     }
 
@@ -143,6 +160,10 @@ export class AuthService {
   async verifyTutor(token: string) {
     const user = await this.verificationService.verifyTutor(token)
     return this.buildUserRO(user)
+  }
+
+  async acceptTutor(dto: AcceptTutorDto) {
+    return this.tutorsService.acceptTutor(dto)
   }
 
   public generateJWT(user: User) {

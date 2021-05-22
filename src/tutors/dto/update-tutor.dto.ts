@@ -19,6 +19,8 @@ export class UpdateTutorDto {
 
   readonly country?: Country
 
+  readonly youtube?: string
+
   @IsEmpty()
   readonly role?: Role
 }

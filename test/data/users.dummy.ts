@@ -46,6 +46,7 @@ export const createDummyTutor = () => [
     fullname: faker.name.findName(),
     password: '123456',
     verified: true,
+    accepted: true,
   }),
   Tutor.create({
     username: faker.internet.userName(),
@@ -53,6 +54,7 @@ export const createDummyTutor = () => [
     fullname: faker.name.findName(),
     password: '123456',
     verified: true,
+    accepted: true,
   }),
 ]
 

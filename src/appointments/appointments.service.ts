@@ -42,10 +42,38 @@ export class AppointmentsService {
     private tutorsService: TutorsService
   ) {}
 
+  async findAppointments() {
+    const appointments = await this.appointmentRepository.find({
+      relations: ['user', 'tutor', 'feedback'],
+    })
+
+    return appointments
+  }
+
   async findUserAppointments(userId: PK) {
-    const appointment = await this.appointmentRepository.find({
+    const appointments = await this.appointmentRepository.find({
       where: { user: { id: userId } },
       relations: ['user', 'tutor', 'feedback'],
+      order: { startTime: 'ASC' },
+    })
+
+    return appointments
+  }
+
+  async findTutorAppointments(tutorId: PK) {
+    const appointments = await this.appointmentRepository.find({
+      where: { tutor: { id: tutorId } },
+      relations: ['user', 'tutor', 'feedback'],
+      order: { startTime: 'ASC' },
+    })
+
+    return appointments
+  }
+
+  async findOneById(id: PK, relations = ['user', 'tutor', 'feedback']) {
+    const appointment = await this.appointmentRepository.findOne({
+      where: { id },
+      relations,
     })
 
     if (!appointment) {
@@ -78,6 +106,34 @@ export class AppointmentsService {
     return appointment
   }
 
+  async findUpcomingUserAppointment(userId: PK) {
+    const appointments = await this.appointmentRepository.find({
+      where: { user: { id: userId }, endTime: MoreThan(dayjs()) },
+      relations: ['user', 'tutor', 'feedback'],
+      order: { startTime: 'ASC' },
+    })
+
+    const [appointment] = appointments.sort(
+      (a1, a2) => a1.startTime.getTime() - a2.startTime.getTime()
+    )
+
+    return appointment
+  }
+
+  async findUpcomingTutorAppointment(tutorId: PK) {
+    const appointments = await this.appointmentRepository.find({
+      where: { tutor: { id: tutorId }, endTime: MoreThan(dayjs()) },
+      relations: ['user', 'tutor', 'feedback'],
+      order: { startTime: 'ASC' },
+    })
+
+    const [appointment] = appointments.sort(
+      (a1, a2) => a1.startTime.getTime() - a2.startTime.getTime()
+    )
+
+    return appointment
+  }
+
   async makeAppointment({
     userId,
     tutorId,
@@ -92,48 +148,43 @@ export class AppointmentsService {
       })
     }
 
-    return getManager()
-      .transaction(async (manager) => {
-        const user = await this.usersService.findOneByIdT(manager, userId)
-        const appointmentCount = await this.countUserDueAppointment(
-          manager,
-          userId
-        )
-        if (appointmentCount >= USER_APPOINTMENT_COUNT_LIMIT) {
-          throw new BadRequestException({
-            message: "You'r appointment count limit is exceeded",
-            errors: { appointmentCount: 'has exceeded' },
-          })
-        }
-
-        const tutor = await this.tutorsService.findOneByIdT(manager, tutorId)
-        const schedule = this.tutorsService.findEmptySchedule(tutor, startTime)
-        if (!schedule) {
-          throw new BadRequestException({
-            message: 'Tutor is not available',
-            errors: { startTime: 'not available' },
-          })
-        }
-
-        const appointment = Appointment.create({
-          user,
-          tutor,
-          startTime: dayjs(startTime).set('seconds', 0),
-          endTime: dayjs(startTime)
-            .set('seconds', 0)
-            .add(APPOINTMENT_DURATION, 'minutes'),
-          schedule,
-          material,
-          request,
+    return getManager().transaction(async (manager) => {
+      const user = await this.usersService.findOneByIdT(manager, userId)
+      const appointmentCount = await this.countUserDueAppointment(
+        manager,
+        userId
+      )
+      if (appointmentCount >= USER_APPOINTMENT_COUNT_LIMIT) {
+        throw new BadRequestException({
+          message: 'Your appointment count limit is exceeded',
+          errors: { appointmentCount: 'has exceeded' },
         })
-        const savedAppointment = await manager.save(appointment)
-        await this.tutorsService.occupySchedule(manager, schedule, appointment)
-        return savedAppointment
+      }
+
+      const tutor = await this.tutorsService.findOneByIdT(manager, tutorId)
+      const schedule = this.tutorsService.findEmptySchedule(tutor, startTime)
+      if (!schedule) {
+        throw new BadRequestException({
+          message: 'Tutor is not available',
+          errors: { startTime: 'not available' },
+        })
+      }
+
+      const appointment = Appointment.create({
+        user,
+        tutor,
+        startTime: dayjs(startTime).set('seconds', 0),
+        endTime: dayjs(startTime)
+          .set('seconds', 0)
+          .add(APPOINTMENT_DURATION, 'minutes'),
+        schedule,
+        material,
+        request,
       })
-      .catch((e) => {
-        console.log(e)
-        throw e
-      })
+      const savedAppointment = await manager.save(appointment)
+      await this.tutorsService.occupySchedule(manager, schedule, appointment)
+      return savedAppointment
+    })
   }
 
   async removeAppointment(dto: RemoveAppointmentDto): Promise<Appointment> {
@@ -148,22 +199,6 @@ export class AppointmentsService {
 
       return manager.remove(appointment)
     })
-  }
-
-  async findOneById(id: PK) {
-    const appointment = await this.appointmentRepository.findOne({
-      where: { id },
-      relations: ['user', 'tutor', 'feedback'],
-    })
-
-    if (!appointment) {
-      throw new NotFoundException({
-        message: 'Appointment not found',
-        errors: { id: 'not existing' },
-      })
-    }
-
-    return appointment
   }
 
   /**

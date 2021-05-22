@@ -6,6 +6,7 @@ import {
   OneToOne,
   BaseEntity,
   JoinColumn,
+  RelationId,
 } from 'typeorm'
 import { User } from '../users/user.entity'
 import { Tutor } from '../tutors/tutor.entity'
