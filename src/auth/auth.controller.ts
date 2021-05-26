@@ -62,7 +62,7 @@ export class AuthController {
     @Body() dto: ChangePasswordDto
   ) {
     const isAdmin = user.role === Role.ADMIN
-    const isUserSelf = user.username === dto.username
+    const isUserSelf = user.username === dto.username && user.role === Role.USER
 
     if (!isUserSelf && !isAdmin) {
       throw new UnauthorizedException({
@@ -82,7 +82,8 @@ export class AuthController {
     @Body() dto: ChangePasswordDto
   ) {
     const isAdmin = user.role === Role.ADMIN
-    const isTutorSelf = user.username === dto.username
+    const isTutorSelf =
+      user.username === dto.username && user.role === Role.TUTOR
 
     if (!isTutorSelf && !isAdmin) {
       throw new UnauthorizedException({

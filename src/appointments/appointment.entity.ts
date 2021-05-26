@@ -6,12 +6,14 @@ import {
   OneToOne,
   BaseEntity,
   JoinColumn,
-  RelationId,
+  AfterLoad,
 } from 'typeorm'
+import * as dayjs from 'dayjs'
 import { User } from '../users/user.entity'
 import { Tutor } from '../tutors/tutor.entity'
 import { Feedback } from './feedback.entity'
 import { Schedule } from '../tutors/schedule.entity'
+import { USER_APPOINTMENT_CANCEL_TIME_LIMIT } from '../config/logic'
 
 @Entity()
 export class Appointment extends BaseEntity {
@@ -49,4 +51,15 @@ export class Appointment extends BaseEntity {
 
   @OneToOne(() => Schedule, (schedule) => schedule.appointment)
   schedule: Schedule
+
+  cancelable: boolean
+
+  finished: boolean
+
+  @AfterLoad()
+  updateStatus() {
+    this.cancelable =
+      dayjs(this.startTime).diff(dayjs()) > USER_APPOINTMENT_CANCEL_TIME_LIMIT
+    this.finished = dayjs(this.endTime).isBefore(dayjs())
+  }
 }

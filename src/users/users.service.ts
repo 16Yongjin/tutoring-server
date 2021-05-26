@@ -117,7 +117,11 @@ export class UsersService {
   async updateUser({ username, ...dto }: UpdateUserDto) {
     return getManager().transaction(async (manager) => {
       const user = await this.findOneByUsernameT(manager, username)
-      return manager.save(User, { ...user, ...dto })
+      user.fullname = dto.fullname
+      user.gender = dto.gender
+      user.language = dto.language
+
+      return manager.save(User, user)
     })
   }
 }

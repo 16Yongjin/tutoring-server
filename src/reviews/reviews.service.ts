@@ -7,12 +7,15 @@ import { UsersService } from '../users/users.service'
 import { CreateReviewDto } from './dto'
 import { AppointmentsService } from '../appointments/appointments.service'
 import { PK } from '../shared/types'
+import { Tutor } from '../tutors/tutor.entity'
 
 @Injectable()
 export class ReviewsService {
   constructor(
     @InjectRepository(Review)
     private reviewRepository: Repository<Review>,
+    @InjectRepository(Tutor)
+    private tutorRepository: Repository<Tutor>,
     private usersService: UsersService,
     private tutorsService: TutorsService,
     private appointmentsService: AppointmentsService

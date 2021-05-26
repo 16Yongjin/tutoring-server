@@ -29,8 +29,10 @@ export class UsersController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: number): string {
-    return `user with ${id}`
+  @Roles(Role.ADMIN, Role.USER)
+  @UseGuards(JwtAuthGuard, RolesGuard, UserGuard)
+  findOne(@Param('id') id: number): Promise<User> {
+    return this.userService.findOneById(id)
   }
 
   @Post(':id')

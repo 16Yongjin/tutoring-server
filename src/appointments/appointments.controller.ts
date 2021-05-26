@@ -51,7 +51,7 @@ export class AppointmentsController {
   }
 
   @Get('tutors')
-  @Roles(Role.USER, Role.ADMIN)
+  @Roles(Role.TUTOR, Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
   findTutorAppointments(@UserInfo('id') tutorId: number) {
     return this.appointmentsService.findTutorAppointments(tutorId)

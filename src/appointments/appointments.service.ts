@@ -54,7 +54,7 @@ export class AppointmentsService {
     const appointments = await this.appointmentRepository.find({
       where: { user: { id: userId } },
       relations: ['user', 'tutor', 'feedback'],
-      order: { startTime: 'ASC' },
+      order: { startTime: 'DESC' },
     })
 
     return appointments
@@ -64,7 +64,7 @@ export class AppointmentsService {
     const appointments = await this.appointmentRepository.find({
       where: { tutor: { id: tutorId } },
       relations: ['user', 'tutor', 'feedback'],
-      order: { startTime: 'ASC' },
+      order: { startTime: 'DESC' },
     })
 
     return appointments

@@ -9,6 +9,7 @@ import { TutorsModule } from './tutors/tutors.module'
 import { AppointmentsModule } from './appointments/appointments.module'
 import { ReviewsModule } from './reviews/reviews.module'
 import { MaterialsModule } from './materials/materials.module'
+import { EventsModule } from './events/events.module'
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { MaterialsModule } from './materials/materials.module'
     AppointmentsModule,
     ReviewsModule,
     MaterialsModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
