@@ -65,7 +65,8 @@ export class AppointmentsController {
 
     const isAdmin = user.role === Role.ADMIN
     const isOwner =
-      user.id === appointment.user.id || user.id === appointment.tutor.id
+      (user.role === Role.USER && user.id === appointment.user.id) ||
+      (user.role === Role.TUTOR && user.id === appointment.tutor.id)
 
     if (!isAdmin && !isOwner) {
       throw new ForbiddenException({

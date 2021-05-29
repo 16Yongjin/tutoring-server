@@ -4,26 +4,21 @@ import {
   SubscribeMessage,
   WebSocketGateway,
   WebSocketServer,
-  WsResponse,
 } from '@nestjs/websockets'
-import { from, Observable } from 'rxjs'
-import { map } from 'rxjs/operators'
+import { nanoid } from 'nanoid'
 import { Server, Socket } from 'socket.io'
+import { ChatData } from './dto/chat.dto'
 
 @WebSocketGateway()
 export class EventsGateway {
   @WebSocketServer()
   server: Server
 
-  // async handleConnection(client: Socket) {
-  //   console.log('handleConnection')
-  //   client.emit('me', client.id)
-  // }
+  async handleConnection(@ConnectedSocket() client: Socket) {
+    client.on('disconnecting', () => this.sendLeftChat(client))
+  }
 
-  // async handleDisconnect(client: Socket) {
-  //   console.log('disconnection')
-  // }
-
+  /** 사용자가 방에 접속했을 때 실행됨 */
   @SubscribeMessage('joinRoom')
   joinRoom(@MessageBody() roomId: string, @ConnectedSocket() client: Socket) {
     console.log('[joinRoom]', roomId)
@@ -33,6 +28,7 @@ export class EventsGateway {
     client.broadcast.to(roomId).emit('hasUser', client.id)
   }
 
+  /** 방에 새로 접속한 유저에게 기존 유저의 존재를 알림 */
   @SubscribeMessage('meToo')
   meToo(@MessageBody() { roomId }: any, @ConnectedSocket() client: Socket) {
     console.log('[me too]', roomId)
@@ -42,6 +38,7 @@ export class EventsGateway {
     client.broadcast.to(roomId).emit('hasUserToo', client.id)
   }
 
+  /** 통화 시작하기 */
   @SubscribeMessage('startCall')
   startCall(
     @MessageBody() { userId, signal }: any,
@@ -52,14 +49,7 @@ export class EventsGateway {
     client.to(userId).emit('startCall', { signal })
   }
 
-  @SubscribeMessage('callUser')
-  callUser(
-    @MessageBody() { signal, roomId }: any,
-    @ConnectedSocket() client: Socket
-  ) {
-    client.broadcast.to(roomId).emit('joinUser', { signal })
-  }
-
+  /** 통화 받으면 응답해서 Peer 시그널을 연결함 */
   @SubscribeMessage('answerCall')
   answerCall(
     @MessageBody() { userId, signal }: any,
@@ -69,6 +59,7 @@ export class EventsGateway {
     client.to(userId).emit('callAccepted', signal)
   }
 
+  /** URL 변경 시 알림 */
   @SubscribeMessage('urlChange')
   urlChange(
     @MessageBody() { roomId, pathname, hash, url }: any,
@@ -79,30 +70,35 @@ export class EventsGateway {
     client.broadcast.to(roomId).emit('urlChange', { pathname, hash, url })
   }
 
+  /** 채팅 주고 받음 */
   @SubscribeMessage('sendChat')
   sendChat(
-    @MessageBody() { roomId, ...chatData }: any,
+    @MessageBody() { roomId, ...chatData }: ChatData,
     @ConnectedSocket() client: Socket
   ) {
     console.log('[send chat]', chatData)
+    client.data = { username: chatData.name }
 
     this.server.to(roomId).emit('sendChat', chatData)
   }
 
-  @SubscribeMessage('events')
-  findAll(@MessageBody() data: any): Observable<WsResponse<number>> {
-    return from([1, 2, 3]).pipe(
-      map((item) => ({ event: 'events', data: item }))
-    )
+  /** 나가면 메시지 보냄 */
+  sendLeftChat(client: Socket) {
+    Object.values(client.rooms).forEach((room) => {
+      const username = client?.data?.username
+      this.server.to(room).emit('sendChat', {
+        id: nanoid(),
+        system: true,
+        name: username,
+        date: new Date(),
+        text: `${username} left the chat`,
+      })
+    })
   }
 
+  /** 테스트 함수 */
   @SubscribeMessage('test')
   test(@MessageBody() data: any) {
     console.log('test', data)
-  }
-
-  @SubscribeMessage('identity')
-  async identity(@MessageBody() data: number): Promise<number> {
-    return data
   }
 }

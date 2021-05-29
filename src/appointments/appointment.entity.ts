@@ -7,6 +7,7 @@ import {
   BaseEntity,
   JoinColumn,
   AfterLoad,
+  RelationId,
 } from 'typeorm'
 import * as dayjs from 'dayjs'
 import { User } from '../users/user.entity'
@@ -25,10 +26,16 @@ export class Appointment extends BaseEntity {
   })
   tutor: Tutor
 
+  @RelationId((appointment: Appointment) => appointment.tutor)
+  tutorId: number
+
   @ManyToOne(() => User, (user) => user.appointments, {
     onDelete: 'CASCADE',
   })
   user: User
+
+  @RelationId((appointment: Appointment) => appointment.user)
+  userId: number
 
   @Column('timestamptz')
   startTime: Date

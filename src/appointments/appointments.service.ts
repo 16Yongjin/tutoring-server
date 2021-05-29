@@ -51,12 +51,20 @@ export class AppointmentsService {
   }
 
   async findUserAppointments(userId: PK) {
-    const appointments = await this.appointmentRepository.find({
-      where: { user: { id: userId } },
-      relations: ['user', 'tutor', 'feedback'],
-      order: { startTime: 'DESC' },
-    })
-
+    const appointments = await this.appointmentRepository
+      .createQueryBuilder('appointment')
+      .leftJoinAndSelect('appointment.user', 'user')
+      .leftJoinAndSelect('appointment.tutor', 'tutor')
+      .leftJoinAndSelect('appointment.feedback', 'feedback')
+      .leftJoinAndSelect(
+        'tutor.reviews',
+        'reviews',
+        'reviews.userId = appointment.userId'
+      )
+      .where('appointment.user.id = :userId', { userId })
+      .orderBy('appointment.startTime', 'DESC')
+      .getMany()
+    console.log('appointments', appointments)
     return appointments
   }
 

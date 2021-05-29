@@ -6,6 +6,7 @@ import {
   CreateDateColumn,
   BeforeInsert,
   BaseEntity,
+  RelationId,
 } from 'typeorm'
 import { User } from '../users/user.entity'
 import { Tutor } from '../tutors/tutor.entity'
@@ -21,10 +22,16 @@ export class Review extends BaseEntity {
   })
   tutor: Tutor
 
+  @RelationId((review: Review) => review.tutor)
+  tutorId: number
+
   @ManyToOne(() => User, (user) => user.reviews, {
     onDelete: 'CASCADE',
   })
   user: User
+
+  @RelationId((review: Review) => review.user)
+  userId: number
 
   @CreateDateColumn()
   createdAt: Date
