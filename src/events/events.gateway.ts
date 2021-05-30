@@ -20,22 +20,37 @@ export class EventsGateway {
 
   /** 사용자가 방에 접속했을 때 실행됨 */
   @SubscribeMessage('joinRoom')
-  joinRoom(@MessageBody() roomId: string, @ConnectedSocket() client: Socket) {
+  joinRoom(
+    @MessageBody() { roomId, isTutor }: any,
+    @ConnectedSocket() client: Socket
+  ) {
     console.log('[joinRoom]', roomId)
 
     client.join(roomId)
 
-    client.broadcast.to(roomId).emit('hasUser', client.id)
+    client.broadcast.to(roomId).emit('hasUser', {
+      userId: client.id,
+      isTutor,
+    })
+
+    if (!client.data) client.data = {}
+    client.data.isTutor = isTutor
   }
 
   /** 방에 새로 접속한 유저에게 기존 유저의 존재를 알림 */
   @SubscribeMessage('meToo')
-  meToo(@MessageBody() { roomId }: any, @ConnectedSocket() client: Socket) {
+  meToo(
+    @MessageBody() { roomId, isTutor }: any,
+    @ConnectedSocket() client: Socket
+  ) {
     console.log('[me too]', roomId)
 
     client.join(roomId)
 
-    client.broadcast.to(roomId).emit('hasUserToo', client.id)
+    client.broadcast.to(roomId).emit('hasUserToo', {
+      userId: client.id,
+      isTutor,
+    })
   }
 
   /** 통화 시작하기 */
@@ -59,6 +74,16 @@ export class EventsGateway {
     client.to(userId).emit('callAccepted', signal)
   }
 
+  /** 통화 준비 신호 보냄 */
+  @SubscribeMessage('getReady')
+  getReady(
+    @MessageBody() { roomId, isTutor }: any,
+    @ConnectedSocket() client: Socket
+  ) {
+    console.log('[getReady]', roomId)
+    client.broadcast.to(roomId).emit('getReady', { isTutor, userId: client.id })
+  }
+
   /** URL 변경 시 알림 */
   @SubscribeMessage('urlChange')
   urlChange(
@@ -77,7 +102,7 @@ export class EventsGateway {
     @ConnectedSocket() client: Socket
   ) {
     console.log('[send chat]', chatData)
-    client.data = { username: chatData.name }
+    client.data = { ...(client.data || {}), username: chatData.name }
 
     this.server.to(roomId).emit('sendChat', chatData)
   }
@@ -92,6 +117,11 @@ export class EventsGateway {
         name: username,
         date: new Date(),
         text: `${username} left the chat`,
+      })
+
+      client.broadcast.to(room).emit('leaveRoom', {
+        userId: client.id,
+        isTutor: client.data?.isTutor,
       })
     })
   }
