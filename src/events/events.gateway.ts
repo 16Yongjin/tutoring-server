@@ -55,17 +55,23 @@ export class EventsGateway {
 
   /** 통화 시작하기 */
   @SubscribeMessage('startCall')
-  startCall(@MessageBody() { userId, signal }: any) {
+  startCall(
+    @MessageBody() { userId, signal }: any,
+    @ConnectedSocket() client: Socket
+  ) {
     console.log('[startCall 받음]')
 
-    this.server.to(userId).emit('startCall', { signal })
+    client.to(userId).emit('startCall', { signal })
   }
 
   /** 통화 받으면 응답해서 Peer 시그널을 연결함 */
   @SubscribeMessage('answerCall')
-  answerCall(@MessageBody() { userId, signal }: any) {
+  answerCall(
+    @MessageBody() { userId, signal }: any,
+    @ConnectedSocket() client: Socket
+  ) {
     console.log('[answerCall]', userId)
-    this.server.to(userId).emit('callAccepted', signal)
+    client.to(userId).emit('callAccepted', signal)
   }
 
   /** 통화 준비 신호 보냄 */
