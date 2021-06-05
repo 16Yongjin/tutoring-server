@@ -14,7 +14,7 @@ import {
 } from 'typeorm'
 import { Tutor } from './tutor.entity'
 import * as argon2 from 'argon2'
-import * as dayjs from 'dayjs'
+import dayjs from 'dayjs'
 import { Schedule } from './schedule.entity'
 import { compareDate } from '../utils/compareDate'
 import { APPOINTMENT_DURATION } from '../config/logic'
@@ -27,7 +27,8 @@ import {
   AcceptTutorDto,
 } from './dto'
 import { Appointment } from '../appointments/appointment.entity'
-
+import minMax from 'dayjs/plugin/minMax'
+dayjs.extend(minMax)
 @Injectable()
 export class TutorsService {
   constructor(
@@ -70,6 +71,8 @@ export class TutorsService {
         'tutor.gender',
         'tutor.presentation',
         'tutor.country',
+        'tutor.rating',
+        'tutor.reviewCount',
       ])
       .where({ verified: true, accepted: true })
       .getMany()
@@ -78,12 +81,14 @@ export class TutorsService {
   }
 
   async searchTutors({
-    startTimestamp,
+    startTimeStr,
+    endTimeStr,
   }: {
-    startTimestamp: number
+    startTimeStr: string
+    endTimeStr: string
   }): Promise<Tutor[]> {
-    const startTime = dayjs(startTimestamp)
-    const endTime = startTime.add(1, 'day')
+    const startTime = dayjs.max(dayjs(startTimeStr), dayjs())
+    const endTime = dayjs(endTimeStr)
     const tutors = await this.tutorRepository
       .createQueryBuilder('tutor')
       .select([
@@ -94,6 +99,8 @@ export class TutorsService {
         'tutor.gender',
         'tutor.presentation',
         'tutor.country',
+        'tutor.rating',
+        'tutor.reviewCount',
       ])
       .leftJoinAndSelect(
         'tutor.schedules',
@@ -124,6 +131,8 @@ export class TutorsService {
         'tutor.presentation',
         'tutor.country',
         'tutor.youtube',
+        'tutor.rating',
+        'tutor.reviewCount',
       ])
       .leftJoinAndSelect(
         'tutor.schedules',
@@ -356,5 +365,22 @@ export class TutorsService {
       tutor.accepted = true
       return manager.save(Tutor, tutor)
     })
+  }
+
+  updateTutorRating(
+    @TransactionManager() manager: EntityManager,
+    tutor: Tutor,
+    rating: number
+  ) {
+    if (tutor.reviewCount === 0) {
+      tutor.reviewCount = 1
+      tutor.rating = rating
+    } else {
+      tutor.rating =
+        (tutor.rating * tutor.reviewCount + rating) / (tutor.reviewCount + 1)
+      tutor.reviewCount += 1
+    }
+
+    return manager.save(tutor)
   }
 }

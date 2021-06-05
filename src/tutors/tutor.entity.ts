@@ -94,6 +94,12 @@ export class Tutor extends BaseEntity {
   @OneToMany(() => Review, (reivew) => reivew.tutor)
   reviews: Review[]
 
+  @Column({ default: 5 })
+  rating: number
+
+  @Column({ default: 0 })
+  reviewCount: number
+
   toJSON() {
     delete this.password
     return this

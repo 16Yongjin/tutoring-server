@@ -1,4 +1,4 @@
-import { Repository } from 'typeorm'
+import { getManager, Repository } from 'typeorm'
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Review } from './review.entity'
@@ -27,20 +27,30 @@ export class ReviewsService {
     text,
     rating,
   }: CreateReviewDto): Promise<Review> {
-    const [user, tutor, _canReview] = await Promise.all([
-      this.usersService.findOneById(userId),
-      this.tutorsService.findOneById(tutorId, []),
-      this.canUserReivewTutor(userId, tutorId),
-    ])
+    return getManager().transaction(async (manager) => {
+      const [user, tutor, _canReview] = await Promise.all([
+        this.usersService.findOneByIdT(manager, userId),
+        this.tutorsService.findOneByIdT(manager, tutorId, []),
+        this.canUserReivewTutor(userId, tutorId),
+      ])
 
-    const review = Review.create({
-      user,
-      tutor,
-      text,
-      rating,
+      const review = Review.create({
+        user,
+        tutor,
+        text,
+        rating,
+      })
+
+      const savedReview = await manager.save(review)
+
+      await this.tutorsService.updateTutorRating(
+        manager,
+        tutor,
+        savedReview.rating
+      )
+
+      return savedReview
     })
-
-    return this.reviewRepository.save(review)
   }
 
   findOneByUserAndTutor(userId: PK, tutorId: PK): Promise<Review> {

@@ -28,8 +28,11 @@ export class TutorsController {
   }
 
   @Get('search')
-  search(@Query('startTime') startTimestamp: number) {
-    return this.tutorService.searchTutors({ startTimestamp })
+  search(
+    @Query('startTime') startTimeStr: string,
+    @Query('endTime') endTimeStr: string
+  ) {
+    return this.tutorService.searchTutors({ startTimeStr, endTimeStr })
   }
 
   @Get('admin')

@@ -9,7 +9,7 @@ import {
   AfterLoad,
   RelationId,
 } from 'typeorm'
-import * as dayjs from 'dayjs'
+import dayjs from 'dayjs'
 import { User } from '../users/user.entity'
 import { Tutor } from '../tutors/tutor.entity'
 import { Feedback } from './feedback.entity'

@@ -8,7 +8,7 @@ import {
   JoinColumn,
   AfterLoad,
 } from 'typeorm'
-import * as dayjs from 'dayjs'
+import dayjs from 'dayjs'
 import { Tutor } from './tutor.entity'
 import { Appointment } from '../appointments/appointment.entity'
 import { USER_APPOINTMENT_MAKE_TIME_LIMIT } from '../config/logic'

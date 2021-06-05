@@ -21,7 +21,7 @@ import {
   FeedbackAppointmentDto,
   RemoveAppointmentDto,
 } from './dto'
-import * as dayjs from 'dayjs'
+import dayjs from 'dayjs'
 import { Role } from '../shared/enums'
 import {
   APPOINTMENT_DURATION,
@@ -64,7 +64,6 @@ export class AppointmentsService {
       .where('appointment.user.id = :userId', { userId })
       .orderBy('appointment.startTime', 'DESC')
       .getMany()
-    console.log('appointments', appointments)
     return appointments
   }
 

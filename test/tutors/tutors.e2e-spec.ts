@@ -5,7 +5,7 @@ import { ConfigModule } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { INestApplication } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
-import * as dayjs from 'dayjs'
+import dayjs from 'dayjs'
 import { User } from '../../src/users/user.entity'
 import { Tutor } from '../../src/tutors/tutor.entity'
 import { TutorsModule } from '../../src/tutors/tutors.module'
@@ -114,7 +114,6 @@ describe('TutorModule Test (e2e)', () => {
         .expect('Content-Type', /json/)
         .expect(200)
 
-      console.log(body)
       expect(body).toEqual(expect.any(Array))
       expect(body[0].password).not.toBeDefined()
       expect(body[0]).toEqual(

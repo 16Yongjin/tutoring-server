@@ -22,8 +22,9 @@ import { Feedback } from '../../src/appointments/feedback.entity'
 import { ReviewsModule } from '../../src/reviews/reviews.module'
 import { Review } from '../../src/reviews/review.entity'
 import { AppointmentsModule } from '../../src/appointments/appointments.module'
+import { TutorsModule } from '../../src/tutors/tutors.module'
 
-xdescribe('ReviewModule Test (e2e)', () => {
+describe('ReviewModule Test (e2e)', () => {
   let app: INestApplication
 
   let tutorRepository: Repository<Tutor>
@@ -62,6 +63,7 @@ xdescribe('ReviewModule Test (e2e)', () => {
         AuthModule,
         AppointmentsModule,
         ReviewsModule,
+        TutorsModule,
       ],
     }).compile()
 
@@ -125,7 +127,7 @@ xdescribe('ReviewModule Test (e2e)', () => {
   })
 
   describe('POST /reviews 리뷰 작성하기', () => {
-    it('유저 리뷰 작성하기', async () => {
+    it.only('유저 리뷰 작성하기', async () => {
       const loginData = {
         username: endedAppointment.user.username,
         password: '123456',
@@ -163,6 +165,20 @@ xdescribe('ReviewModule Test (e2e)', () => {
           rating: reviewData.rating,
           tutor: expect.objectContaining({ id: reviewData.tutorId }),
           user: expect.objectContaining({ id: reviewData.userId }),
+        })
+      )
+
+      const { body: tutor } = await request
+        .agent(app.getHttpServer())
+        .get(`/tutors/${endedAppointment.tutor.id}`)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      expect(tutor).toEqual(
+        expect.objectContaining({
+          rating: 5,
+          reviewCount: 1,
         })
       )
     })
