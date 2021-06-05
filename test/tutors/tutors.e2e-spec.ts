@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { INestApplication } from '@nestjs/common'
 import { Test, TestingModule } from '@nestjs/testing'
+import * as dayjs from 'dayjs'
 import { User } from '../../src/users/user.entity'
 import { Tutor } from '../../src/tutors/tutor.entity'
 import { TutorsModule } from '../../src/tutors/tutors.module'
@@ -100,6 +101,45 @@ describe('TutorModule Test (e2e)', () => {
           username: expect.any(String),
         })
       )
+    })
+  })
+
+  describe('GET /tutors/search 튜터 목록 검색', () => {
+    it('오늘 시간 되는 튜터 검색', async () => {
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .get(`/tutors/search`)
+        .query({ startTimestamp: Date.now() })
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      console.log(body)
+      expect(body).toEqual(expect.any(Array))
+      expect(body[0].password).not.toBeDefined()
+      expect(body[0]).toEqual(
+        expect.objectContaining({
+          id: expect.any(Number),
+          fullname: expect.any(String),
+          language: expect.any(String),
+          image: expect.any(String),
+          gender: expect.any(String),
+          presentation: expect.any(String),
+          country: expect.any(String),
+        })
+      )
+      expect(body[0]).not.toEqual(
+        expect.objectContaining({
+          email: expect.any(String),
+          username: expect.any(String),
+        })
+      )
+      // 스케쥴의 모든 시작 시간이 timestamp 이후인지 확인
+      expect(
+        body[0].schedules.every((schedule) =>
+          dayjs(schedule.startTime).isAfter(dayjs())
+        )
+      ).toBeTruthy()
     })
   })
 

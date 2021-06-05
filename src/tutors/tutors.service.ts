@@ -77,9 +77,72 @@ export class TutorsService {
     return tutors
   }
 
+  async searchTutors({
+    startTimestamp,
+  }: {
+    startTimestamp: number
+  }): Promise<Tutor[]> {
+    const startTime = dayjs(startTimestamp)
+    const endTime = startTime.add(1, 'day')
+    const tutors = await this.tutorRepository
+      .createQueryBuilder('tutor')
+      .select([
+        'tutor.id',
+        'tutor.fullname',
+        'tutor.language',
+        'tutor.image',
+        'tutor.gender',
+        'tutor.presentation',
+        'tutor.country',
+      ])
+      .leftJoinAndSelect(
+        'tutor.schedules',
+        'schedule',
+        'schedule.startTime BETWEEN :startTime AND :endTime',
+        { startTime, endTime }
+      )
+      .where({ verified: true, accepted: true })
+      .getMany()
+
+    return tutors.filter((tutor) => tutor.schedules.length)
+  }
+
   async findAllByAdmin(relations: string[] = []): Promise<Tutor[]> {
     const tutors = await this.tutorRepository.find({ relations })
     return tutors
+  }
+
+  async findOneByIdWithSchedules(id: PK): Promise<Tutor> {
+    const tutor = await this.tutorRepository
+      .createQueryBuilder('tutor')
+      .select([
+        'tutor.id',
+        'tutor.fullname',
+        'tutor.language',
+        'tutor.image',
+        'tutor.gender',
+        'tutor.presentation',
+        'tutor.country',
+        'tutor.youtube',
+      ])
+      .leftJoinAndSelect(
+        'tutor.schedules',
+        'schedule',
+        'schedule.startTime >= :todayStart',
+        { todayStart: dayjs().startOf('day') }
+      )
+      .where({ id, verified: true, accepted: true })
+      .getOne()
+
+    if (!tutor) {
+      const error = {
+        message: 'Tutor not found',
+        errors: { id: 'not existing' },
+      }
+      throw new NotFoundException(error)
+    }
+
+    return tutor
   }
 
   async findOneById(

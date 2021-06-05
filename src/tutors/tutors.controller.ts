@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UseGuards,
   UsePipes,
 } from '@nestjs/common'
@@ -26,6 +27,11 @@ export class TutorsController {
     return this.tutorService.findAllByUser()
   }
 
+  @Get('search')
+  search(@Query('startTime') startTimestamp: number) {
+    return this.tutorService.searchTutors({ startTimestamp })
+  }
+
   @Get('admin')
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard)
@@ -35,7 +41,7 @@ export class TutorsController {
 
   @Get(':id')
   findOneById(@Param('id') id: PK) {
-    return this.tutorService.findOneById(id)
+    return this.tutorService.findOneByIdWithSchedules(id)
   }
 
   @Post(':id')
