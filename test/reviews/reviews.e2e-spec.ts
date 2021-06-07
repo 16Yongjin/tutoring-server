@@ -127,7 +127,7 @@ describe('ReviewModule Test (e2e)', () => {
   })
 
   describe('POST /reviews 리뷰 작성하기', () => {
-    it.only('유저 리뷰 작성하기', async () => {
+    it('유저 리뷰 작성하기', async () => {
       const loginData = {
         username: endedAppointment.user.username,
         password: '123456',
@@ -373,6 +373,74 @@ describe('ReviewModule Test (e2e)', () => {
           rating: review.rating,
         })
       )
+    })
+  })
+
+  describe('PUT /reviews/:id/featured 리뷰 삭제하기', () => {
+    it.only('어드민 추천 리뷰 설정', async () => {
+      const review = reviews[0]
+      const loginData = {
+        username: adminUser.username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      // 리뷰 추천 추가
+      await request
+        .agent(app.getHttpServer())
+        .put(`/reviews/${review.id}/featured`)
+        .send({ featured: true })
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      // 리뷰 가져오기
+      const { body: featuredReviews } = await request
+        .agent(app.getHttpServer())
+        .get(`/reviews/featured`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      expect(featuredReviews[0]).toEqual(
+        expect.objectContaining({
+          text: review.text,
+          rating: review.rating,
+          user: { fullname: expect.any(String) },
+          tutor: { fullname: expect.any(String) },
+        })
+      )
+
+      // 리뷰 추천 삭제
+      await request
+        .agent(app.getHttpServer())
+        .put(`/reviews/${review.id}/featured`)
+        .send({ featured: false })
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      const { body: featuredReviews2 } = await request
+        .agent(app.getHttpServer())
+        .get(`/reviews/featured`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      expect(featuredReviews2).toEqual([])
     })
   })
 

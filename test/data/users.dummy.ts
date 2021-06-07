@@ -1,4 +1,4 @@
-import * as day from 'dayjs'
+import day from 'dayjs'
 import * as faker from 'faker'
 import { Role } from '../../src/shared/enums'
 import { User } from '../../src/users/user.entity'

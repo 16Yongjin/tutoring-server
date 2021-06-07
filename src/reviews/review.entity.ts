@@ -42,6 +42,9 @@ export class Review extends BaseEntity {
   @Column()
   text!: string
 
+  @Column({ default: false })
+  featured: boolean
+
   @BeforeInsert()
   clampRating() {
     this.rating = clamp(this.rating, 0, 5)

@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Put,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common'
@@ -15,7 +16,7 @@ import { PK } from '../shared/types'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { Roles, UserInfo } from '../shared/decoratos'
 import { RolesGuard } from '../shared/guards'
-import { CreateReviewDto } from './dto'
+import { CreateReviewDto, SetFeaturedDto } from './dto'
 import { ReviewsService } from './reviews.service'
 
 @Controller('reviews')
@@ -27,6 +28,20 @@ export class ReviewsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   findReview() {
     return this.reviewsService.findAll()
+  }
+
+  @Get('featured')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findFeaturedReview() {
+    return this.reviewsService.findAllFeatured()
+  }
+
+  @Get('featured/admin')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  findFeaturedReviewByAdmin() {
+    return this.reviewsService.findAllFeaturedByAdmin()
   }
 
   @Get('me')
@@ -64,5 +79,15 @@ export class ReviewsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   async removeReview(@Param('id') id: number) {
     return this.reviewsService.removeById(id)
+  }
+
+  @Put(':id/featured')
+  @Roles(Role.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  toggleReviewFeatured(
+    @Param('id') id: number,
+    @Body(new ValidationPipe()) dto: SetFeaturedDto
+  ) {
+    return this.reviewsService.setFeatured(id, dto.featured)
   }
 }

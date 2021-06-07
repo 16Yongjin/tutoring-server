@@ -1,5 +1,14 @@
-import { getManager, Repository } from 'typeorm'
-import { BadRequestException, Injectable } from '@nestjs/common'
+import {
+  EntityManager,
+  getManager,
+  Repository,
+  TransactionManager,
+} from 'typeorm'
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Review } from './review.entity'
 import { TutorsService } from '../tutors/tutors.service'
@@ -7,15 +16,12 @@ import { UsersService } from '../users/users.service'
 import { CreateReviewDto } from './dto'
 import { AppointmentsService } from '../appointments/appointments.service'
 import { PK } from '../shared/types'
-import { Tutor } from '../tutors/tutor.entity'
 
 @Injectable()
 export class ReviewsService {
   constructor(
     @InjectRepository(Review)
     private reviewRepository: Repository<Review>,
-    @InjectRepository(Tutor)
-    private tutorRepository: Repository<Tutor>,
     private usersService: UsersService,
     private tutorsService: TutorsService,
     private appointmentsService: AppointmentsService
@@ -28,7 +34,7 @@ export class ReviewsService {
     rating,
   }: CreateReviewDto): Promise<Review> {
     return getManager().transaction(async (manager) => {
-      const [user, tutor, _canReview] = await Promise.all([
+      const [user, tutor] = await Promise.all([
         this.usersService.findOneByIdT(manager, userId),
         this.tutorsService.findOneByIdT(manager, tutorId, []),
         this.canUserReivewTutor(userId, tutorId),
@@ -92,8 +98,54 @@ export class ReviewsService {
     })
   }
 
+  async findOneByIdT(
+    @TransactionManager() manager: EntityManager,
+    id: PK,
+    relations: string[] = []
+  ): Promise<Review> {
+    const review = await manager.findOne(Review, {
+      where: { id },
+      relations,
+    })
+
+    if (!review) {
+      throw new NotFoundException({
+        message: 'appointment not found',
+        errors: { id: 'not exists' },
+      })
+    }
+
+    return review
+  }
+
   findAll(): Promise<Review[]> {
     return this.reviewRepository.find({ relations: ['user', 'tutor'] })
+  }
+
+  async findAllFeatured(): Promise<Review[]> {
+    const reviews = await this.reviewRepository.find({
+      relations: ['user', 'tutor'],
+      where: { featured: true },
+    })
+
+    return reviews.map((review) => {
+      return {
+        ...review,
+        user: {
+          fullname: review.user.fullname.substr(0, 4) + '*****',
+        },
+        tutor: {
+          fullname: review.tutor.fullname,
+        },
+      }
+    }) as Review[]
+  }
+
+  findAllFeaturedByAdmin(): Promise<Review[]> {
+    return this.reviewRepository.find({
+      relations: ['user', 'tutor'],
+      where: { featured: true },
+    })
   }
 
   findUserReviews(userId: PK): Promise<Review[]> {
@@ -122,5 +174,13 @@ export class ReviewsService {
     }
 
     return this.reviewRepository.remove(review)
+  }
+
+  async setFeatured(id: PK, featured: boolean): Promise<Review> {
+    return getManager().transaction(async (manager) => {
+      const review = await this.findOneByIdT(manager, id)
+      review.featured = featured
+      return manager.save(review)
+    })
   }
 }
