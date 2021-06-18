@@ -22,8 +22,8 @@ import { PK } from '../shared/types'
 import {
   UpdateTutorDto,
   CreateTutorDto,
-  AddSchedulesDto,
-  RemoveSchedulesDto,
+  AddScheduleDto,
+  RemoveScheduleDto,
   AcceptTutorDto,
 } from './dto'
 import { Appointment } from '../appointments/appointment.entity'
@@ -242,17 +242,38 @@ export class TutorsService {
       .getMany()
   }
 
-  async addSchedule(id: PK, startTime: Date) {
-    const tutor = await this.findOneById(id)
+  async findTutorSchedule({
+    tutorId,
+    schedule,
+  }: {
+    tutorId: PK
+    schedule: Date
+  }) {
+    return this.scheduleRepository
+      .createQueryBuilder('schedule')
+      .where('schedule.tutorId = :tutorId', { tutorId })
+      .andWhere(
+        'schedule.startTime > :rangeStart AND schedule.startTime < :rangeEnd',
+        {
+          rangeStart: dayjs(schedule).subtract(1, 'minute'),
+          rangeEnd: dayjs(schedule).add(1, 'minute'),
+        }
+      )
 
-    const existingSchedule = this.findSchedule(tutor, startTime)
+      .getOne()
+  }
+
+  async addSchedule(tutorId: PK, { schedule }: AddScheduleDto) {
+    const existingSchedule = await this.findTutorSchedule({ tutorId, schedule })
 
     if (existingSchedule) return existingSchedule
 
+    const tutor = await this.findOneById(tutorId)
+
     const newSchedule = Schedule.create({
       tutor,
-      startTime: dayjs(startTime).set('second', 0),
-      endTime: dayjs(startTime)
+      startTime: dayjs(schedule).set('second', 0),
+      endTime: dayjs(schedule)
         .set('second', 0)
         .add(APPOINTMENT_DURATION, 'minutes'),
     })
@@ -260,57 +281,24 @@ export class TutorsService {
     return this.scheduleRepository.save(newSchedule)
   }
 
-  async addSchedules(id: PK, { schedules }: AddSchedulesDto) {
-    return getManager().transaction(async (manager) => {
-      const tutor = await this.findOneByIdT(manager, id)
-      const hasSchedule = tutor.schedules
-        .map((s) => dayjs(s.startTime).format('YYYY-MM-DDTHH:mm'))
-        .reduce(
-          (acc, v) => ((acc[v] = true), acc),
-          {} as Record<string, boolean>
-        )
+  async removeSchedule(tutorId: PK, { schedule }: RemoveScheduleDto) {
+    const existingSchedule = await this.findTutorSchedule({ tutorId, schedule })
 
-      const filteredSchedules = schedules
-        .filter((d) => !hasSchedule[dayjs(d).format('YYYY-MM-DDTHH:mm')])
-        .map((startTime) =>
-          Schedule.create({
-            tutor,
-            startTime,
-            endTime: dayjs(startTime).add(APPOINTMENT_DURATION, 'minutes'),
-          })
-        )
+    if (!existingSchedule) {
+      throw new NotFoundException({
+        message: 'Schedule not found',
+        errors: { schedule: 'Not found' },
+      })
+    }
 
-      await manager.save(filteredSchedules)
+    if (existingSchedule.appointmentId) {
+      throw new BadRequestException({
+        message: 'Reserved Schedule cannot be deleted',
+        errors: { schedule: 'contains reserved schedule' },
+      })
+    }
 
-      return this.findOneByIdT(manager, id)
-    })
-  }
-
-  async removeSchedules(id: PK, { schedules }: RemoveSchedulesDto) {
-    return getManager().transaction(async (manager) => {
-      const tutor = await this.findOneByIdT(manager, id)
-      const isTargetSchedule = schedules
-        .map((d) => dayjs(d).format('YYYY-MM-DDTHH:mm'))
-        .reduce(
-          (acc, v) => ((acc[v] = true), acc),
-          {} as Record<string, boolean>
-        )
-
-      const targetSchedules = tutor.schedules.filter(
-        (s) => isTargetSchedule[dayjs(s.startTime).format('YYYY-MM-DDTHH:mm')]
-      )
-
-      if (targetSchedules.some((s) => !!s.appointmentId)) {
-        throw new BadRequestException({
-          message: 'Reserved Schedule cannot be deleted',
-          errors: { schedules: 'contains reserved schedule' },
-        })
-      }
-
-      await manager.remove(targetSchedules)
-
-      return this.findOneByIdT(manager, id)
-    })
+    return this.scheduleRepository.remove(existingSchedule)
   }
 
   occupySchedule(

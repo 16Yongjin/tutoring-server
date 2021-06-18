@@ -31,8 +31,6 @@ export class ReviewsController {
   }
 
   @Get('featured')
-  @Roles(Role.ADMIN)
-  @UseGuards(JwtAuthGuard, RolesGuard)
   findFeaturedReview() {
     return this.reviewsService.findAllFeatured()
   }

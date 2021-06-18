@@ -13,7 +13,7 @@ import { TutorsService } from './tutors.service'
 import { TutorGuard } from '../shared/guards/tutor.guard'
 import { ValidationPipe } from '../shared/pipes'
 import { PK } from '../shared/types'
-import { UpdateTutorDto, AddSchedulesDto, RemoveSchedulesDto } from './dto'
+import { UpdateTutorDto, AddScheduleDto, RemoveScheduleDto } from './dto'
 import { Roles, UserInfo } from '../shared/decoratos'
 import { Role } from '../shared/enums'
 import { RolesGuard } from '../shared/guards'
@@ -68,14 +68,14 @@ export class TutorsController {
   @Post(':id/schedules')
   @UsePipes(new ValidationPipe())
   @UseGuards(JwtAuthGuard, TutorGuard)
-  addSchedules(@Param('id') id: number, @Body() dto: AddSchedulesDto) {
-    return this.tutorService.addSchedules(id, dto)
+  addSchedule(@Param('id') id: number, @Body() dto: AddScheduleDto) {
+    return this.tutorService.addSchedule(id, dto)
   }
 
   @Post(':id/schedules/remove')
   @UsePipes(new ValidationPipe())
   @UseGuards(JwtAuthGuard, TutorGuard)
-  removeSchedules(@Param('id') id: number, @Body() dto: RemoveSchedulesDto) {
-    return this.tutorService.removeSchedules(id, dto)
+  removeSchedule(@Param('id') id: number, @Body() dto: RemoveScheduleDto) {
+    return this.tutorService.removeSchedule(id, dto)
   }
 }

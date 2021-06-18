@@ -129,13 +129,16 @@ export class ReviewsService {
     })
 
     return reviews.map((review) => {
+      const { user, tutor } = review
+
       return {
         ...review,
         user: {
           fullname: review.user.fullname.substr(0, 4) + '*****',
         },
         tutor: {
-          fullname: review.tutor.fullname,
+          ...tutor,
+          email: undefined,
         },
       }
     }) as Review[]

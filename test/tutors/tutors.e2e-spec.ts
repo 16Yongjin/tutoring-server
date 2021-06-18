@@ -106,10 +106,12 @@ describe('TutorModule Test (e2e)', () => {
 
   describe('GET /tutors/search 튜터 목록 검색', () => {
     it('오늘 시간 되는 튜터 검색', async () => {
+      const startTime = dayjs().startOf('day').toISOString()
+      const endTime = dayjs().endOf('day').toISOString()
       const { body } = await request
         .agent(app.getHttpServer())
         .get(`/tutors/search`)
-        .query({ startTimestamp: Date.now() })
+        .query({ startTime, endTime })
         .set('Accept', 'application/json')
         .expect('Content-Type', /json/)
         .expect(200)
@@ -259,7 +261,7 @@ describe('TutorModule Test (e2e)', () => {
         username: tutors[1].username,
         password: '123456',
       }
-      const data = { schedules: [new Date()] }
+      const data = { schedule: dayjs() }
       const {
         body: { id, token },
       } = await request
@@ -277,9 +279,7 @@ describe('TutorModule Test (e2e)', () => {
         .expect('Content-Type', /json/)
         .expect(201)
 
-      expect(
-        compareDate(body.schedules[0].startTime, data.schedules[0])
-      ).toBeTruthy()
+      expect(compareDate(body.startTime, data.schedule.toDate())).toBeTruthy()
     })
   })
 
@@ -289,7 +289,7 @@ describe('TutorModule Test (e2e)', () => {
         username: tutors[0].username,
         password: '123456',
       }
-      const data = { schedules: [schedules[0].startTime] }
+      const data = { schedule: schedules[0].startTime }
       const {
         body: { id, token },
       } = await request
@@ -298,7 +298,7 @@ describe('TutorModule Test (e2e)', () => {
         .set('Accept', 'application/json')
         .send(loginData)
 
-      const { body: tutor } = await request
+      const { body: schedule } = await request
         .agent(app.getHttpServer())
         .post(`/tutors/${id}/schedules/remove`)
         .set('Authorization', `Bearer ${token}`)
@@ -307,10 +307,9 @@ describe('TutorModule Test (e2e)', () => {
         .expect('Content-Type', /json/)
         .expect(201)
 
-      const compare = tutor.schedules.every(
-        (s) => !compareDate(s.startTime, data.schedules[0])
-      )
-      expect(compare).toBeTruthy()
+      expect(
+        compareDate(schedule.startTime, new Date(data.schedule))
+      ).toBeTruthy()
     })
 
     it('어드민이 다른 튜터의 스케쥴 제거', async () => {
@@ -318,7 +317,7 @@ describe('TutorModule Test (e2e)', () => {
         username: users[0].username,
         password: '123456',
       }
-      const data = { schedules: [schedules[0].startTime] }
+      const data = { schedule: schedules[0].startTime }
       const {
         body: { token },
       } = await request
@@ -327,7 +326,7 @@ describe('TutorModule Test (e2e)', () => {
         .set('Accept', 'application/json')
         .send(loginData)
 
-      const { body: tutor } = await request
+      const { body: schedule } = await request
         .agent(app.getHttpServer())
         .post(`/tutors/${tutors[0].id}/schedules/remove`)
         .set('Authorization', `Bearer ${token}`)
@@ -336,10 +335,9 @@ describe('TutorModule Test (e2e)', () => {
         .expect('Content-Type', /json/)
         .expect(201)
 
-      const compare = tutor.schedules.every(
-        (s) => !compareDate(s.startTime, data.schedules[0])
-      )
-      expect(compare).toBeTruthy()
+      expect(
+        compareDate(schedule.startTime, new Date(data.schedule))
+      ).toBeTruthy()
     })
   })
 
