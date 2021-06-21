@@ -1,11 +1,14 @@
 import {
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   ForbiddenException,
   Get,
   Param,
+  ParseIntPipe,
   Post,
+  Query,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common'
@@ -25,8 +28,11 @@ export class AppointmentsController {
   @Get()
   @Roles(Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findAppointments() {
-    return this.appointmentsService.findAppointments()
+  findAppointments(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number
+  ) {
+    return this.appointmentsService.findAppointments({ page, take })
   }
 
   @Get('upcoming')
@@ -46,15 +52,27 @@ export class AppointmentsController {
   @Get('me')
   @Roles(Role.USER, Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findUserAppointments(@UserInfo('id') userId: number) {
-    return this.appointmentsService.findUserAppointments(userId)
+  findUserAppointments(
+    @UserInfo('id') userId: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number
+  ) {
+    return this.appointmentsService.findUserAppointments({ userId, page, take })
   }
 
   @Get('tutors')
   @Roles(Role.TUTOR, Role.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  findTutorAppointments(@UserInfo('id') tutorId: number) {
-    return this.appointmentsService.findTutorAppointments(tutorId)
+  findTutorAppointments(
+    @UserInfo('id') tutorId: number,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
+    @Query('take', new DefaultValuePipe(10), ParseIntPipe) take: number
+  ) {
+    return this.appointmentsService.findTutorAppointments({
+      tutorId,
+      page,
+      take,
+    })
   }
 
   @Get(':id')

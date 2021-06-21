@@ -30,6 +30,7 @@ import {
   USER_APPOINTMENT_MAKE_TIME_LIMIT,
 } from '../config/logic'
 import { PK } from '../shared/types'
+import { clamp } from 'lodash'
 
 @Injectable()
 export class AppointmentsService {
@@ -42,15 +43,35 @@ export class AppointmentsService {
     private tutorsService: TutorsService
   ) {}
 
-  async findAppointments() {
+  async findAppointments({
+    page = 1,
+    take = 10,
+  }: {
+    page: number
+    take: number
+  }) {
+    const size = clamp(take, 1, 10)
+    const skip = Math.max((page - 1) * size, 0)
     const appointments = await this.appointmentRepository.find({
       relations: ['user', 'tutor', 'feedback'],
+      skip,
+      take: size,
     })
 
     return appointments
   }
 
-  async findUserAppointments(userId: PK) {
+  async findUserAppointments({
+    userId,
+    page = 1,
+    take = 10,
+  }: {
+    userId: PK
+    page: number
+    take: number
+  }) {
+    const size = clamp(take, 1, 10)
+    const skip = Math.max((page - 1) * size, 0)
     const appointments = await this.appointmentRepository
       .createQueryBuilder('appointment')
       .leftJoinAndSelect('appointment.user', 'user')
@@ -63,15 +84,29 @@ export class AppointmentsService {
       )
       .where('appointment.user.id = :userId', { userId })
       .orderBy('appointment.startTime', 'DESC')
+      .skip(skip)
+      .take(size)
       .getMany()
     return appointments
   }
 
-  async findTutorAppointments(tutorId: PK) {
+  async findTutorAppointments({
+    tutorId,
+    page = 1,
+    take = 10,
+  }: {
+    tutorId: PK
+    page: number
+    take: number
+  }) {
+    const size = clamp(take, 1, 10)
+    const skip = Math.max((page - 1) * size, 0)
     const appointments = await this.appointmentRepository.find({
       where: { tutor: { id: tutorId } },
       relations: ['user', 'tutor', 'feedback'],
       order: { startTime: 'DESC' },
+      skip,
+      take: size,
     })
 
     return appointments
