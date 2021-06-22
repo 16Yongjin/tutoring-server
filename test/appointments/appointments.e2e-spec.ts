@@ -417,6 +417,35 @@ describe('AppointmentModule Test (e2e)', () => {
     })
   })
 
+  describe('GET /appointments/me 어드민 약속 가져오기', () => {
+    it('어드민 약속 가져오기', async () => {
+      const loginData = {
+        username: adminUser.username,
+        password: '123456',
+      }
+
+      const {
+        body: { token },
+      } = await request
+        .agent(app.getHttpServer())
+        .post('/auth/login')
+        .send(loginData)
+        .set('Accept', 'application/json')
+        .expect('Content-Type', /json/)
+        .expect(201)
+
+      const { body } = await request
+        .agent(app.getHttpServer())
+        .get(`/appointments`)
+        .set('Accept', 'application/json')
+        .set('Authorization', `Bearer ${token}`)
+        .expect('Content-Type', /json/)
+        .expect(200)
+
+      expect(body).toHaveLength(appointments.length)
+    })
+  })
+
   describe('GET /appointments/me 유저 약속 가져오기', () => {
     it('유저 약속 가져오기', async () => {
       const loginData = {
