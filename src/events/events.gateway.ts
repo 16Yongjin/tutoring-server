@@ -95,7 +95,6 @@ export class EventsGateway {
     @MessageBody() { roomId, ...chatData }: ChatData,
     @ConnectedSocket() client: Socket
   ) {
-    console.log('[send chat]', chatData)
     client.data = { ...(client.data || {}), username: chatData.name }
 
     this.server.to(roomId).emit('sendChat', chatData)
