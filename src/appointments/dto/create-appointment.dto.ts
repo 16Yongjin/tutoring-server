@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer'
-import { IsDate, IsNotEmpty, MaxLength } from 'class-validator'
+import { IsDate, IsNotEmpty, IsNumber, MaxLength } from 'class-validator'
 
 export class CreateAppointmentDto {
   @IsNotEmpty()
@@ -17,4 +17,7 @@ export class CreateAppointmentDto {
 
   @MaxLength(200)
   request: string
+
+  @IsNumber()
+  courseId: number
 }

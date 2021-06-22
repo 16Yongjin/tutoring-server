@@ -46,6 +46,9 @@ export class Appointment extends BaseEntity {
   @Column()
   material: string
 
+  @Column({ type: 'integer', nullable: true })
+  courseId: number
+
   @Column({ default: '' })
   request: string
 

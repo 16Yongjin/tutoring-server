@@ -182,6 +182,7 @@ export class AppointmentsService {
     startTime,
     material,
     request,
+    courseId,
   }: CreateAppointmentDto): Promise<Appointment> {
     if (dayjs(startTime).diff(dayjs()) < USER_APPOINTMENT_MAKE_TIME_LIMIT) {
       throw new BadRequestException({
@@ -222,6 +223,7 @@ export class AppointmentsService {
         schedule,
         material,
         request,
+        courseId,
       })
       const savedAppointment = await manager.save(appointment)
       await this.tutorsService.occupySchedule(manager, schedule, appointment)
