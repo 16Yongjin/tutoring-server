@@ -21,6 +21,7 @@ import { Appointment } from '../../src/appointments/appointment.entity'
 import { Feedback } from '../../src/appointments/feedback.entity'
 import { AppointmentsModule } from '../../src/appointments/appointments.module'
 import { Role } from '../../src/shared/enums'
+import { testConnection } from '../connection/typeorm'
 
 describe('AppointmentModule Test (e2e)', () => {
   let app: INestApplication
@@ -45,16 +46,7 @@ describe('AppointmentModule Test (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot(),
-        TypeOrmModule.forRoot({
-          type: 'postgres',
-          host: process.env.POSTGRES_HOST,
-          port: 5432,
-          username: process.env.POSTGRES_PASSWORD,
-          password: process.env.POSTGRES_PASSWORD,
-          database: process.env.POSTGRES_TEST_DATABASE,
-          entities: ['./**/*.entity.ts'],
-          synchronize: true,
-        }),
+        TypeOrmModule.forRoot(testConnection),
         AuthModule,
         AppointmentsModule,
       ],

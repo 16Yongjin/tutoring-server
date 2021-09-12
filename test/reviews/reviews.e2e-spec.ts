@@ -23,6 +23,7 @@ import { ReviewsModule } from '../../src/reviews/reviews.module'
 import { Review } from '../../src/reviews/review.entity'
 import { AppointmentsModule } from '../../src/appointments/appointments.module'
 import { TutorsModule } from '../../src/tutors/tutors.module'
+import { testConnection } from '../connection/typeorm'
 
 describe('ReviewModule Test (e2e)', () => {
   let app: INestApplication
@@ -50,16 +51,7 @@ describe('ReviewModule Test (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot(),
-        TypeOrmModule.forRoot({
-          type: 'postgres',
-          host: process.env.POSTGRES_HOST,
-          port: 5432,
-          username: process.env.POSTGRES_PASSWORD,
-          password: process.env.POSTGRES_PASSWORD,
-          database: process.env.POSTGRES_TEST_DATABASE,
-          entities: ['./**/*.entity.ts'],
-          synchronize: true,
-        }),
+        TypeOrmModule.forRoot(testConnection),
         AuthModule,
         AppointmentsModule,
         ReviewsModule,
@@ -417,8 +409,8 @@ describe('ReviewModule Test (e2e)', () => {
         expect.objectContaining({
           text: review.text,
           rating: review.rating,
-          user: { fullname: expect.any(String) },
-          tutor: { fullname: expect.any(String) },
+          user: expect.objectContaining({ fullname: expect.any(String) }),
+          tutor: expect.objectContaining({ fullname: expect.any(String) }),
         })
       )
 

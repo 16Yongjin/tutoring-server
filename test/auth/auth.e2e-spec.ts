@@ -10,12 +10,15 @@ import { Role } from './../../src/shared/enums'
 import { Tutor } from './../../src/tutors/tutor.entity'
 import { Schedule } from '../../src/tutors/schedule.entity'
 import { createDummyTutor, createDummyUser } from '../data/users.dummy'
-import * as emailUtils from '../../src/utils/sendEmail'
 import * as generateCode from '../../src/utils/generateCode'
 import {
   EmailVerification,
   TutorEmailVerification,
 } from '../../src/verification/email-verification.entity'
+import nodemailer from 'nodemailer'
+import { testConnection } from '../connection/typeorm'
+
+jest.mock('nodemailer')
 
 describe('AuthModule /auth (e2e)', () => {
   let app: INestApplication
@@ -28,9 +31,9 @@ describe('AuthModule /auth (e2e)', () => {
   let users: User[]
 
     // 이메일 보내기 기능 목업
-  ;(emailUtils.sendEmail as jest.Mock) = jest
+  ;(nodemailer.createTransport as jest.Mock) = jest
     .fn()
-    .mockImplementation(console.log)
+    .mockReturnValue({ sendMail: () => null })
   // 토큰 생성 기능 목업
   ;(generateCode.generateCode as jest.Mock) = jest
     .fn()
@@ -38,19 +41,7 @@ describe('AuthModule /auth (e2e)', () => {
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        TypeOrmModule.forRoot({
-          type: 'postgres',
-          host: process.env.POSTGRES_HOST,
-          port: 5432,
-          username: process.env.POSTGRES_PASSWORD,
-          password: process.env.POSTGRES_PASSWORD,
-          database: process.env.POSTGRES_TEST_DATABASE,
-          entities: ['./**/*.entity.ts'],
-          synchronize: true,
-        }),
-        AuthModule,
-      ],
+      imports: [TypeOrmModule.forRoot(testConnection), AuthModule],
     }).compile()
 
     app = moduleFixture.createNestApplication()

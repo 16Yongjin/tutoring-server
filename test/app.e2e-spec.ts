@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { INestApplication } from '@nestjs/common'
-import * as request from 'supertest'
+import request from 'supertest'
 import { AppModule } from './../src/app.module'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ConfigModule } from '@nestjs/config'
+import { testConnection } from './connection/typeorm'
 
 xdescribe('AppController (e2e)', () => {
   let app: INestApplication
@@ -12,16 +13,7 @@ xdescribe('AppController (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot(),
-        TypeOrmModule.forRoot({
-          type: 'postgres',
-          host: process.env.POSTGRES_HOST,
-          port: 5432,
-          username: process.env.POSTGRES_PASSWORD,
-          password: process.env.POSTGRES_PASSWORD,
-          database: process.env.POSTGRES_TEST_DATABASE,
-          entities: ['./**/*.entity.ts'],
-          synchronize: true,
-        }),
+        TypeOrmModule.forRoot(testConnection),
         AppModule,
       ],
     }).compile()

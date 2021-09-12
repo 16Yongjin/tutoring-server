@@ -17,6 +17,7 @@ import {
 } from './material.dummy'
 import { createDummyUser } from '../data/users.dummy'
 import { omit } from 'lodash'
+import { testConnection } from '../connection/typeorm'
 
 describe.only('MaterialsModule Test (e2e)', () => {
   let app: INestApplication
@@ -37,16 +38,7 @@ describe.only('MaterialsModule Test (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot(),
-        TypeOrmModule.forRoot({
-          type: 'postgres',
-          host: process.env.POSTGRES_HOST,
-          port: 5432,
-          username: process.env.POSTGRES_PASSWORD,
-          password: process.env.POSTGRES_PASSWORD,
-          database: process.env.POSTGRES_TEST_DATABASE,
-          entities: ['./**/*.entity.ts'],
-          synchronize: true,
-        }),
+        TypeOrmModule.forRoot(testConnection),
         AuthModule,
         MaterialsModule,
       ],

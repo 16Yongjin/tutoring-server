@@ -18,6 +18,7 @@ import { AuthModule } from '../../src/auth/auth.module'
 import { Schedule } from '../../src/tutors/schedule.entity'
 import { compareDate } from '../../src/utils/compareDate'
 import { Gender } from '../../src/shared/enums'
+import { testConnection } from '../connection/typeorm'
 
 describe('TutorModule Test (e2e)', () => {
   let app: INestApplication
@@ -32,16 +33,7 @@ describe('TutorModule Test (e2e)', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [
         ConfigModule.forRoot(),
-        TypeOrmModule.forRoot({
-          type: 'postgres',
-          host: process.env.POSTGRES_HOST,
-          port: 5432,
-          username: process.env.POSTGRES_PASSWORD,
-          password: process.env.POSTGRES_PASSWORD,
-          database: process.env.POSTGRES_TEST_DATABASE,
-          entities: ['./**/*.entity.ts'],
-          synchronize: true,
-        }),
+        TypeOrmModule.forRoot(testConnection),
         TutorsModule,
         AuthModule,
       ],
